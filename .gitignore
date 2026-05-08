@@ -78,3 +78,7 @@ firebase-debug.log
 *.seed
 *.pid.lock
 .serverless/
+
+# ---------- Notas internas (no compartir en repo público) ----------
+CONTEXT.md
+DEPLOY.md
