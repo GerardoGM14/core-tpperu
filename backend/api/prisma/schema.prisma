@@ -1,0 +1,459 @@
+// ============================================================
+// TPP Perú · Prisma schema
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// Auth & Users
+// ============================================================
+
+enum UserRole {
+  ADMIN
+  AGENT
+  VIEWER
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  fullName     String
+  role         UserRole  @default(AGENT)
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  refreshTokens     RefreshToken[]
+  assignedConvos    Conversation[] @relation("AssignedAgent")
+  createdCampaigns  Campaign[]     @relation("CreatedBy")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ============================================================
+// Catálogo (paquetes turísticos)
+// ============================================================
+
+enum PackageStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+model Package {
+  id           String        @id @default(cuid())
+  code         String        @unique           // PKG-001
+  name         String
+  destination  String
+  description  String?
+  durationDays Int
+  durationNights Int
+  priceCents   Int                              // en céntimos PEN
+  currency     String        @default("PEN")
+  status       PackageStatus @default(DRAFT)
+  imageUrl     String?
+  metadata     Json?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  orders Order[]
+}
+
+// ============================================================
+// Clientes
+// ============================================================
+
+model Customer {
+  id          String   @id @default(cuid())
+  fullName    String
+  email       String?
+  phone       String   @unique                 // E.164: +51987654321
+  documentId  String?                          // DNI/CE
+  notes       String?
+  tags        String[]
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orders        Order[]
+  conversations Conversation[]
+
+  @@index([phone])
+}
+
+// ============================================================
+// Ventas / Reservas
+// ============================================================
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PAID
+  CANCELLED
+  REFUNDED
+}
+
+enum OrderChannel {
+  WHATSAPP
+  WEB
+  PHONE
+  REFERRAL
+  WALKIN
+}
+
+model Order {
+  id          String       @id @default(cuid())
+  code        String       @unique             // ORD-2026-0001
+  customerId  String
+  customer    Customer     @relation(fields: [customerId], references: [id])
+  packageId   String
+  package     Package      @relation(fields: [packageId], references: [id])
+  status      OrderStatus  @default(PENDING)
+  channel     OrderChannel @default(WHATSAPP)
+  travelDate  DateTime?
+  pax         Int          @default(1)
+  totalCents  Int
+  paidCents   Int          @default(0)
+  currency    String       @default("PEN")
+  notes       String?
+  metadata    Json?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  payments Payment[]
+
+  @@index([status, createdAt])
+  @@index([customerId])
+}
+
+model Payment {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  method      String                              // yape, plin, card, transfer
+  amountCents Int
+  reference   String?
+  paidAt      DateTime
+  metadata    Json?
+  createdAt   DateTime @default(now())
+}
+
+// ============================================================
+// Conversaciones · WhatsApp
+// ============================================================
+
+enum ConversationStatus {
+  OPEN
+  PENDING
+  CLOSED
+}
+
+model Conversation {
+  id           String             @id @default(cuid())
+  customerId   String?
+  customer     Customer?          @relation(fields: [customerId], references: [id])
+  remoteJid    String             @unique         // 51987654321@s.whatsapp.net
+  displayName  String?
+  status       ConversationStatus @default(OPEN)
+  unreadCount  Int                @default(0)
+  lastMessageAt DateTime?
+  assignedToId String?
+  assignedTo   User?              @relation("AssignedAgent", fields: [assignedToId], references: [id])
+  tags         String[]
+  metadata     Json?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  messages Message[]
+
+  @@index([status, lastMessageAt])
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessageStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum MessageKind {
+  TEXT
+  IMAGE
+  AUDIO
+  VIDEO
+  DOCUMENT
+  STICKER
+  LOCATION
+  CONTACT
+  TEMPLATE
+  REACTION
+  SYSTEM
+}
+
+model Message {
+  id              String           @id @default(cuid())
+  conversationId  String
+  conversation    Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  externalId      String?          @unique         // WAMID o whatsmeow id
+  direction       MessageDirection
+  kind            MessageKind      @default(TEXT)
+  status          MessageStatus    @default(PENDING)
+  body            String?
+  mediaUrl        String?
+  mediaMimeType   String?
+  mediaCaption    String?
+  payload         Json?                            // crudo del whatsmeow
+  errorReason     String?
+  sentAt          DateTime?
+  deliveredAt     DateTime?
+  readAt          DateTime?
+  createdAt       DateTime         @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+// ============================================================
+// Flujos de automatización
+// ============================================================
+
+enum FlowStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum FlowTriggerType {
+  CART_ABANDONED
+  PAYMENT_CONFIRMED
+  LEAD_NO_PURCHASE
+  TRAVEL_DATE_OFFSET
+  NEWSLETTER_SUBSCRIBE
+  MANUAL
+}
+
+model Flow {
+  id            String          @id @default(cuid())
+  code          String          @unique           // FLOW-01
+  name          String
+  description   String?
+  status        FlowStatus      @default(DRAFT)
+  triggerType   FlowTriggerType
+  triggerConfig Json?
+  publishedAt   DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  nodes FlowNode[]
+  edges FlowEdge[]
+  runs  FlowRun[]
+}
+
+enum FlowNodeType {
+  TRIGGER
+  MESSAGE
+  CONDITION
+  ACTION
+  DELAY
+}
+
+model FlowNode {
+  id      String       @id @default(cuid())
+  flowId  String
+  flow    Flow         @relation(fields: [flowId], references: [id], onDelete: Cascade)
+  type    FlowNodeType
+  title   String
+  body    String?
+  config  Json?
+  posX    Int          @default(0)
+  posY    Int          @default(0)
+
+  outgoing FlowEdge[] @relation("FromNode")
+  incoming FlowEdge[] @relation("ToNode")
+
+  @@index([flowId])
+}
+
+model FlowEdge {
+  id         String   @id @default(cuid())
+  flowId     String
+  flow       Flow     @relation(fields: [flowId], references: [id], onDelete: Cascade)
+  fromNodeId String
+  fromNode   FlowNode @relation("FromNode", fields: [fromNodeId], references: [id], onDelete: Cascade)
+  toNodeId   String
+  toNode     FlowNode @relation("ToNode", fields: [toNodeId], references: [id], onDelete: Cascade)
+  kind       String?                                // alt | alt2 | null
+
+  @@index([flowId])
+}
+
+enum FlowRunStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model FlowRun {
+  id           String        @id @default(cuid())
+  flowId       String
+  flow         Flow          @relation(fields: [flowId], references: [id])
+  customerId   String?
+  currentNodeId String?
+  status       FlowRunStatus @default(RUNNING)
+  context      Json?
+  startedAt    DateTime      @default(now())
+  finishedAt   DateTime?
+
+  @@index([flowId, status])
+}
+
+// ============================================================
+// Plantillas de mensajes
+// ============================================================
+
+enum TemplateStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
+model Template {
+  id          String         @id @default(cuid())
+  code        String         @unique           // WSP_RECUP_CARRITO_v3
+  name        String
+  body        String
+  variables   String[]
+  language    String         @default("es")
+  status      TemplateStatus @default(DRAFT)
+  approvedAt  DateTime?
+  metadata    Json?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+// ============================================================
+// Campañas y recordatorios
+// ============================================================
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  RUNNING
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+model Campaign {
+  id           String         @id @default(cuid())
+  name         String
+  description  String?
+  templateId   String?
+  status       CampaignStatus @default(DRAFT)
+  scheduledAt  DateTime?
+  audience     Json?                            // filtros sobre Customer
+  stats        Json?                            // sent, delivered, read, replied
+  createdById  String?
+  createdBy    User?          @relation("CreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+enum ReminderStatus {
+  PENDING
+  SENT
+  CANCELLED
+  FAILED
+}
+
+model Reminder {
+  id           String         @id @default(cuid())
+  customerId   String?
+  orderId      String?
+  templateId   String?
+  body         String?
+  scheduledAt  DateTime
+  status       ReminderStatus @default(PENDING)
+  sentAt       DateTime?
+  metadata     Json?
+  createdAt    DateTime       @default(now())
+
+  @@index([scheduledAt, status])
+}
+
+// ============================================================
+// Documentos del viaje
+// ============================================================
+
+enum DocumentKind {
+  ITINERARY
+  VOUCHER
+  INVOICE
+  CONTRACT
+  OTHER
+}
+
+model Document {
+  id          String       @id @default(cuid())
+  code        String       @unique           // DOC-001
+  name        String
+  kind        DocumentKind @default(OTHER)
+  packageId   String?
+  fileUrl     String
+  fileSize    Int?
+  mimeType    String?
+  sentCount   Int          @default(0)
+  isActive    Boolean      @default(true)
+  metadata    Json?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+// ============================================================
+// Sesión de WhatsApp (whatsmeow)
+//   El daemon Go usa la base directamente para persistir creds.
+//   whatsmeow trae su propio sqlstore; lo apuntaremos a esta DB.
+// ============================================================
+
+// Nota: whatsmeow crea sus tablas (whatsmeow_*) automáticamente.
+// No las modelamos en Prisma, solo viven en el mismo Postgres.
+
+// Aquí guardamos solo metadata propia del bridge (no las creds raw):
+model WhatsappSession {
+  id              String   @id @default(cuid())
+  label           String   @default("default")
+  jid             String?                          // 51987654321@s.whatsapp.net
+  pushName        String?
+  status          String   @default("disconnected") // disconnected | qr | connecting | connected
+  lastConnectedAt DateTime?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
