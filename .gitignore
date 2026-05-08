@@ -53,8 +53,9 @@ coverage/
 **/prisma/migrations/migration_lock.toml.bak
 
 # ---------- Go ----------
-**/wa-daemon
-**/wa-daemon.exe
+# binarios compilados del wa-daemon (no la carpeta)
+backend/wa-daemon/wa-daemon
+backend/wa-daemon/wa-daemon.exe
 *.test
 *.out
 vendor/
