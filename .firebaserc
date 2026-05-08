@@ -1,0 +1,18 @@
+{
+  "projects": {
+    "default": "app-tppperu"
+  },
+  "targets": {
+    "app-tppperu": {
+      "hosting": {
+        "landing": [
+          "app-tppperu"
+        ],
+        "frontend": [
+          "app-tppperu-app"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

@@ -1,0 +1,79 @@
+# ============================================================
+# Monorepo · TPP Perú
+# ============================================================
+
+# ---------- OS ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# ---------- Editores / IDEs ----------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ---------- Logs / temp ----------
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.tmp
+*.bak
+
+# ---------- Variables de entorno ----------
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# ---------- Node / JS ----------
+node_modules/
+dist/
+build/
+out/
+.next/
+.cache/
+.parcel-cache/
+.turbo/
+coverage/
+.nyc_output/
+
+# ---------- Vite ----------
+*.local
+.vite/
+
+# ---------- TypeScript ----------
+*.tsbuildinfo
+
+# ---------- Prisma ----------
+**/prisma/migrations/migration_lock.toml.bak
+
+# ---------- Go ----------
+**/wa-daemon
+**/wa-daemon.exe
+*.test
+*.out
+vendor/
+go.work
+go.work.sum
+
+# ---------- Astro ----------
+.astro/
+
+# ---------- Firebase ----------
+.firebase/
+firebase-debug.log
+.runtimeconfig.json
+
+# ---------- Docker ----------
+# (los volumes son nombrados, no aparecen en disco del repo)
+
+# ---------- Otros ----------
+*.pid
+*.seed
+*.pid.lock
+.serverless/
