@@ -1,0 +1,76 @@
+---
+import Text from "./Text.astro";
+---
+
+<div
+  id="cookie-overlay"
+  class="fixed inset-0 z-[90] bg-black/40 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-500 ease-in-out"
+>
+</div>
+
+<div
+  id="cookie-banner"
+  class="fixed bottom-0 left-0 w-full z-[100] bg-[#121110]/95 backdrop-blur-md border-t border-white/10 p-4 transform translate-y-full transition-transform duration-500 ease-in-out"
+>
+  <div
+    class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4"
+  >
+    <div class="flex-1 text-center sm:text-left">
+      <Text variant="body" class="text-sm text-[#F3F2ED]">
+        Utilizamos cookies propias y de terceros para analizar el uso de nuestra
+        web y mostrarte publicidad relacionada con tus preferencias sobre la
+        base de un perfil elaborado a partir de tus hábitos de navegación.
+      </Text>
+    </div>
+    <div class="flex gap-3 shrink-0">
+      <button
+        id="cookie-accept"
+        class="bg-[#F4B13B] text-[#121110] px-6 py-2 rounded-md font-action font-semibold text-sm hover:brightness-105 transition-all cursor-pointer"
+      >
+        Aceptar
+      </button>
+      <button
+        id="cookie-decline"
+        class="border border-white/30 text-white px-4 py-2 rounded-md font-action font-medium text-sm hover:bg-white/10 transition-all cursor-pointer"
+      >
+        Rechazar
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Script para manejar el banner de cookies y el overlay
+  document.addEventListener("DOMContentLoaded", () => {
+    const banner = document.getElementById("cookie-banner");
+    const overlay = document.getElementById("cookie-overlay");
+    const acceptBtn = document.getElementById("cookie-accept");
+    const declineBtn = document.getElementById("cookie-decline");
+
+    // Comprobar si ya se ha tomado una decisión
+    const cookieConsent = localStorage.getItem("tpp_cookie_consent");
+
+    if (!cookieConsent && banner && overlay) {
+      // Mostrar el banner y el overlay si no hay consentimiento guardado
+      setTimeout(() => {
+        overlay.classList.remove("opacity-0", "pointer-events-none");
+        overlay.classList.add("opacity-100", "pointer-events-auto");
+        banner.classList.remove("translate-y-full");
+      }, 500);
+    }
+
+    const closeBanner = (decision: string) => {
+      localStorage.setItem("tpp_cookie_consent", decision);
+      if (banner && overlay) {
+        banner.classList.add("translate-y-full");
+        overlay.classList.remove("opacity-100", "pointer-events-auto");
+        overlay.classList.add("opacity-0", "pointer-events-none");
+      }
+    };
+
+    if (acceptBtn)
+      acceptBtn.addEventListener("click", () => closeBanner("accepted"));
+    if (declineBtn)
+      declineBtn.addEventListener("click", () => closeBanner("declined"));
+  });
+</script>

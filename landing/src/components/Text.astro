@@ -1,0 +1,33 @@
+---
+interface Props {
+  as?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'p' | 'span' | 'a';
+  variant?: 'body' | 'action' | 'heading' | 'price' | 'decoration';
+  className?: string;
+  href?: string;
+  [key: string]: any;
+}
+
+const { 
+  as: Tag = 'p', 
+  variant = 'body', 
+  className = '', 
+  href,
+  ...rest 
+} = Astro.props;
+
+const variants = {
+  body: 'font-body',
+  action: 'font-action',
+  heading: 'font-heading',
+  price: 'font-price',
+  decoration: 'font-decoration'
+};
+---
+
+<Tag 
+  class={`${variants[variant]} ${className}`} 
+  {...(href ? { href } : {})}
+  {...rest}
+>
+  <slot />
+</Tag>

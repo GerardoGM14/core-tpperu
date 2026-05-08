@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@theme {
+  /* Design System de Fuentes */
+  --font-body: "Rubik", sans-serif;
+  --font-action: "Rubik", sans-serif;
+  --font-heading: "Be Vietnam Pro", sans-serif;
+  --font-price: "Be Vietnam Pro", sans-serif;
+  --font-decoration: "Charmonman", cursive;
+
+  --color-primary: #F4B13B;
+  --color-dark: #121110;
+}
+
+body {
+  font-family: var(--font-body);
+  margin: 0;
+  padding: 0;
+}

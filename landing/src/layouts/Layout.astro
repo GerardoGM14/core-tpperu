@@ -1,0 +1,31 @@
+---
+import '../styles/global.css';
+import CookieBanner from '../components/CookieBanner.astro';
+
+interface Props {
+	title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="es">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="description" content="Tours, paquetes y experiencias listas para que solo te preocupes por disfrutar." />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{title}</title>
+		
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		{/* Fuentes del sistema de diseño de Gerardo */}
+		<link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&family=Be+Vietnam+Pro:ital,wght@0,100..900;1,100..900&family=Charmonman:wght@400;700&display=swap" rel="stylesheet">
+	</head>
+	<body class="bg-dark text-white font-body">
+		<slot />
+		<CookieBanner />
+	</body>
+</html>
