@@ -6,6 +6,54 @@ import { Image } from 'astro:assets';
 import backgroundHero from '../assets/background.webp';
 import backgroundPromo from '../assets/background-promo.webp';
 import wspIcon from '../icons/icon-wsp.svg';
+import logoMarca from '../assets/logo_tpperu.png';
+
+// ============================================================
+//  Paquetes destacados — EDITA AQUÍ tus datos reales
+//  tagClase: clases de color del tag según tipo
+//    naranja → 'bg-[#f26304] text-white'
+//    amarillo → 'bg-[#f4b13b] text-[#121110]'
+//    rojo     → 'bg-[#cc140d] text-white'
+//  imagen: reemplaza la URL por un import de ../assets/ cuando tengas las fotos
+// ============================================================
+const paquetes = [
+	{
+		nombre: 'Paquete Tarapoto 7d/6n con una noche en Laguna',
+		precio: 'S/ 589',
+		precioAntes: 'S/829',
+		descuento: '-45%',
+		tag: 'Imperdibles',
+		tagClase: 'bg-[#f26304] text-white',
+		imagen: 'https://images.unsplash.com/photo-1531168556467-80aace0d0144?w=500&q=80',
+	},
+	{
+		nombre: 'Paquete Tarapoto 7d/6n con una noche en Laguna',
+		precio: 'S/ 589',
+		precioAntes: 'S/829',
+		descuento: '-45%',
+		tag: 'Nuevo',
+		tagClase: 'bg-[#f4b13b] text-[#121110]',
+		imagen: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=500&q=80',
+	},
+	{
+		nombre: 'Paquete Tarapoto 7d/6n con una noche en Laguna',
+		precio: 'S/ 589',
+		precioAntes: 'S/829',
+		descuento: '-45%',
+		tag: 'Cyber',
+		tagClase: 'bg-[#cc140d] text-white',
+		imagen: 'https://images.unsplash.com/photo-1437846972679-9e6e537be46e?w=500&q=80',
+	},
+	{
+		nombre: 'Paquete Tarapoto 7d/6n con una noche en Laguna',
+		precio: 'S/ 589',
+		precioAntes: 'S/829',
+		descuento: '-45%',
+		tag: 'Imperdibles',
+		tagClase: 'bg-[#f26304] text-white',
+		imagen: 'https://images.unsplash.com/photo-1518182170546-07661fd94144?w=500&q=80',
+	},
+];
 ---
 
 <Layout title="TPP PERÚ | Vive Tarapoto">
@@ -56,17 +104,141 @@ import wspIcon from '../icons/icon-wsp.svg';
 		</div>
 	</main>
 
-	<section class="bg-[#F3F2ED] py-4 px-2 md:px-8">
+	<section class="bg-[#F3F2ED] py-4 px-2 md:px-5">
 		<div class="relative w-full">
 			<Image 
 				src={backgroundPromo} 
 				alt="Promo Background" 
-				class="w-full h-auto object-contain"
+				class="w-full h-auto object-cover"
 			/>
 			{/* Overlay sutil para la imagen promo */}
 			<div class="absolute inset-0 bg-black/5"></div>
 		</div>
-	<section class="bg-[#121110] py-24 px-8 md:px-24">
-		{/* Nueva sección oscura para contenido */}
 	</section>
+
+	{/* ============================================================
+	     Experiencias favoritas — carrusel de paquetes (desde Figma)
+	     ============================================================ */}
+	<section class="relative bg-[#F3F2ED] py-[70px] px-8 md:px-[100px] overflow-hidden">
+		{/* Logo TPP como marca de agua decorativa (abajo-izquierda, muy tenue) */}
+		<Image
+			src={logoMarca}
+			alt=""
+			aria-hidden="true"
+			class="pointer-events-none select-none absolute -left-24 -bottom-16 w-[640px] max-w-none opacity-[0.06] rotate-180 z-0"
+		/>
+
+		<div class="relative z-10 flex flex-col lg:flex-row gap-10 items-start">
+
+			{/* Columna izquierda: título + descripción */}
+			<div class="flex flex-col gap-4 shrink-0 w-full lg:w-[386px]">
+				<div class="border-b border-[#F45A3B]/20 pb-6">
+					{/* Etiqueta "LOS MÁS ELEGIDOS" */}
+					<div class="inline-flex bg-[#F45A3B] -rotate-1 px-5 py-1.5 rounded-sm mb-3">
+						<span class="font-body font-medium text-[20px] text-white">LOS MÁS ELEGIDOS</span>
+					</div>
+					<h2 class="font-heading font-bold text-[36px] leading-[0.95] text-[#191505]">
+						Experiencias favoritas de nuestros viajeros
+					</h2>
+				</div>
+				<p class="font-body text-[18px] text-[#121110]/80 leading-normal">
+					Los paquetes, tours y alojamientos más reservados para descubrir Tarapoto.
+				</p>
+			</div>
+
+			{/* Columna derecha: flechas + carrusel de cards */}
+			<div class="flex flex-1 gap-3.5 items-center min-w-0 w-full">
+				<button
+					type="button"
+					data-carousel-prev
+					class="opacity-50 hover:opacity-100 disabled:opacity-20 disabled:cursor-default transition-opacity shrink-0 text-[#121110] cursor-pointer"
+					aria-label="Anterior"
+				>
+					<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+				</button>
+
+				<div
+					data-carousel-track
+					class="flex flex-1 gap-3.5 items-stretch min-w-0 overflow-x-auto py-2 scroll-smooth snap-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+				>
+					{paquetes.map((p) => (
+						<article class="bg-white shadow-[0_4px_16px_rgba(34,32,30,0.12)] hover:shadow-[0_8px_24px_rgba(34,32,30,0.18)] transition-shadow flex flex-col gap-3.5 pb-2.5 pt-1.5 px-1.5 rounded-lg shrink-0 w-[248px] snap-start">
+							{/* Imagen + tag + estrellas */}
+							<div class="relative flex flex-col gap-2 h-[194px] items-center justify-end py-3.5 rounded-md overflow-hidden">
+								<img src={p.imagen} alt={p.nombre} class="absolute inset-0 w-full h-full object-cover rounded-md" />
+								{/* Overlay degradado oscuro */}
+								<div class="absolute inset-0 rounded-md bg-gradient-to-b from-[rgba(4,22,20,0.72)] via-transparent to-[rgba(4,22,20,0.3)] mix-blend-multiply"></div>
+								{/* Tag (esquina sup. izq.) */}
+								<span class={`absolute top-[23px] left-0 px-3 py-1 text-[13px] font-body font-semibold uppercase ${p.tagClase}`} style="clip-path: polygon(0 0, 100% 0, 90% 100%, 0 100%);">
+									{p.tag}
+								</span>
+								{/* Estrellas / rating (placeholder) */}
+								<div class="relative z-10 flex gap-1 text-[#F4B13B] text-[8px]">
+									★★★★★
+								</div>
+							</div>
+
+							{/* Contenido */}
+							<div class="flex flex-col px-1">
+								<h3 class="font-heading font-semibold text-[16px] leading-[1.11] text-[#191505] text-center">
+									{p.nombre}
+								</h3>
+								<div class="flex flex-col gap-[17px] pt-2.5">
+									<div class="flex gap-2.5 items-end">
+										<div class="flex flex-col text-center">
+											<span class="font-price text-[12px] leading-[0.95] line-through opacity-70 text-[#121110]">{p.precioAntes}</span>
+											<span class="font-price font-bold text-[18px] leading-[1.2] text-[#191505]">{p.precio}</span>
+										</div>
+										{p.descuento && (
+											<span class="bg-[#cc140d] flex items-center justify-center px-2.5 py-1 rounded-full text-[12px] font-heading font-semibold text-white">
+												{p.descuento}
+											</span>
+										)}
+									</div>
+									<button class="bg-[#d3d1c6] hover:brightness-95 transition-all flex gap-1.5 h-10 items-center justify-center px-6 rounded w-full cursor-pointer">
+										<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2v16M2 10h16" stroke="#262522" stroke-width="2" stroke-linecap="round"/></svg>
+										<span class="font-action font-medium text-[14px] text-[#262522]">Añadir a mi viaje</span>
+									</button>
+								</div>
+							</div>
+						</article>
+					))}
+				</div>
+
+				<button
+					type="button"
+					data-carousel-next
+					class="opacity-50 hover:opacity-100 disabled:opacity-20 disabled:cursor-default transition-opacity shrink-0 text-[#121110] cursor-pointer"
+					aria-label="Siguiente"
+				>
+					<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+				</button>
+			</div>
+		</div>
+	</section>
+
+	{/* Carrusel: flechas mueven el track con scroll suave */}
+	<script>
+		document.querySelectorAll('[data-carousel-track]').forEach((track) => {
+			const el = track as HTMLElement;
+			const wrap = el.parentElement!;
+			const prev = wrap.querySelector('[data-carousel-prev]') as HTMLButtonElement;
+			const next = wrap.querySelector('[data-carousel-next]') as HTMLButtonElement;
+			// Ancho de una card + gap (gap-3.5 = 14px)
+			const step = () => {
+				const card = el.querySelector('article');
+				return card ? card.getBoundingClientRect().width + 14 : 262;
+			};
+			const update = () => {
+				const max = el.scrollWidth - el.clientWidth - 1;
+				prev.disabled = el.scrollLeft <= 0;
+				next.disabled = el.scrollLeft >= max;
+			};
+			prev?.addEventListener('click', () => el.scrollBy({ left: -step(), behavior: 'smooth' }));
+			next?.addEventListener('click', () => el.scrollBy({ left: step(), behavior: 'smooth' }));
+			el.addEventListener('scroll', update, { passive: true });
+			window.addEventListener('resize', update);
+			update();
+		});
+	</script>
 </Layout>
