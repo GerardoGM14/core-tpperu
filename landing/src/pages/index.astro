@@ -9,6 +9,13 @@ import wspIcon from '../icons/icon-wsp.svg';
 import logoMarca from '../assets/logo_tpperu.png';
 
 // ============================================================
+//  Paquetes destacados — EDITA AQUÍ tus datos reales
+//  tagClase: clases de color del tag según tipo
+//    naranja → 'bg-[#f26304] text-white'
+//    amarillo → 'bg-[#f4b13b] text-[#121110]'
+//    rojo     → 'bg-[#cc140d] text-white'
+//  imagen: reemplaza la URL por un import de ../assets/ cuando tengas las fotos
+// ============================================================
 const paquetes = [
 	{
 		nombre: 'Paquete Tarapoto 7d/6n con una noche en Laguna',
@@ -45,15 +52,6 @@ const paquetes = [
 		tag: 'Imperdibles',
 		tagClase: 'bg-[#f26304] text-white',
 		imagen: 'https://images.unsplash.com/photo-1518182170546-07661fd94144?w=500&q=80',
-	},
-	{
-		nombre: 'Paquete Tarapoto 7d/6n con una noche en Laguna',
-		precio: 'S/ 589',
-		precioAntes: 'S/829',
-		descuento: '-45%',
-		tag: 'Nuevo',
-		tagClase: 'bg-[#f4b13b] text-[#121110]',
-		imagen: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=500&q=80',
 	},
 ];
 ---
@@ -122,19 +120,19 @@ const paquetes = [
 	     Experiencias favoritas — carrusel de paquetes (desde Figma)
 	     ============================================================ */}
 	<section class="relative bg-[#F3F2ED] py-[70px] px-8 md:px-[100px] overflow-hidden">
-		{/* Logo TPP como marca de agua decorativa (abajo-izquierda, muy tenue) */}
-		<Image
-			src={logoMarca}
-			alt=""
+		{/* Logo TPP como marca de agua decorativa (abajo-izquierda, dentro de la sección).
+		    Se pinta con máscara CSS para tener color dorado sólido (sin lavado de filtros). */}
+		<div
 			aria-hidden="true"
-			class="pointer-events-none select-none absolute -left-24 -bottom-16 w-[640px] max-w-none opacity-[0.06] rotate-180 z-0"
-		/>
+			class="pointer-events-none select-none absolute left-4 bottom-0 w-[460px] h-[360px] opacity-80 z-0 bg-[#f26304]"
+			style={`mask: url(${logoMarca.src}) bottom left / contain no-repeat; -webkit-mask: url(${logoMarca.src}) bottom left / contain no-repeat;`}
+		></div>
 
-		<div class="relative z-10 flex flex-col lg:flex-row gap-10 lg:gap-20 items-start">
+		<div class="relative z-10 flex flex-col lg:flex-row gap-10 items-start">
 
 			{/* Columna izquierda: título + descripción */}
-			<div class="relative flex flex-col gap-4 shrink-0 w-full lg:w-[480px]">
-				<div class="relative z-10 border-b border-[#F45A3B]/20 pb-6">
+			<div class="flex flex-col gap-4 shrink-0 w-full lg:w-[386px]">
+				<div class="border-b border-[#F45A3B]/20 pb-6">
 					{/* Etiqueta "LOS MÁS ELEGIDOS" */}
 					<div class="inline-flex bg-[#F45A3B] -rotate-1 px-5 py-1.5 rounded-sm mb-3">
 						<span class="font-body font-medium text-[20px] text-white">LOS MÁS ELEGIDOS</span>
@@ -143,10 +141,9 @@ const paquetes = [
 						Experiencias favoritas de nuestros viajeros
 					</h2>
 				</div>
-				<p class="relative z-10 font-body text-[18px] text-[#121110]/80 leading-normal">
+				<p class="font-body text-[18px] text-[#121110]/80 leading-normal">
 					Los paquetes, tours y alojamientos más reservados para descubrir Tarapoto.
 				</p>
-				<Image src={logoMarca} alt="" class="pointer-events-none select-none absolute -left-20 top-[50px] w-[680px] max-w-none z-0" />
 			</div>
 
 			{/* Columna derecha: flechas + carrusel de cards */}
@@ -162,10 +159,10 @@ const paquetes = [
 
 				<div
 					data-carousel-track
-					class="flex flex-1 gap-3.5 items-stretch min-w-0 overflow-x-auto py-6 px-4 snap-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden max-w-[1120px]"
+					class="flex flex-1 gap-6 items-stretch min-w-0 overflow-x-auto px-3 py-5 -mx-3 -my-5 scroll-smooth snap-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
 				>
-					{[...paquetes, ...paquetes, ...paquetes].map((p) => (
-						<article class="bg-white shadow-[0_4px_16px_rgba(34,32,30,0.12)] hover:shadow-[0_8px_24px_rgba(34,32,30,0.18)] transition-shadow flex flex-col gap-3.5 pb-2.5 pt-1.5 px-1.5 rounded-lg shrink-0 w-[248px] snap-start">
+					{paquetes.map((p) => (
+						<article class="bg-white shadow-[0_6px_20px_-2px_rgba(34,32,30,0.18)] hover:shadow-[0_12px_28px_-4px_rgba(34,32,30,0.25)] transition-shadow flex flex-col gap-3.5 pb-2.5 pt-1.5 px-1.5 rounded-lg shrink-0 w-[248px] snap-start">
 							{/* Imagen + tag + estrellas */}
 							<div class="relative flex flex-col gap-2 h-[194px] items-center justify-end py-3.5 rounded-md overflow-hidden">
 								<img src={p.imagen} alt={p.nombre} class="absolute inset-0 w-full h-full object-cover rounded-md" />
@@ -175,12 +172,9 @@ const paquetes = [
 								<span class={`absolute top-[23px] left-0 px-3 py-1 text-[13px] font-body font-semibold uppercase ${p.tagClase}`} style="clip-path: polygon(0 0, 100% 0, 90% 100%, 0 100%);">
 									{p.tag}
 								</span>
-								{/* Puntos indicadores del carrusel de fotos */}
-								<div class="relative z-10 flex gap-1.5">
-									<span class="w-2.5 h-2.5 rounded-full bg-[#F4B13B]"></span>
-									<span class="w-2.5 h-2.5 rounded-full bg-white"></span>
-									<span class="w-2.5 h-2.5 rounded-full bg-white"></span>
-									<span class="w-2.5 h-2.5 rounded-full bg-white"></span>
+								{/* Estrellas / rating (placeholder) */}
+								<div class="relative z-10 flex gap-1 text-[#F4B13B] text-[8px]">
+									★★★★★
 								</div>
 							</div>
 
@@ -223,72 +217,31 @@ const paquetes = [
 		</div>
 	</section>
 
-	{/* Carrusel: flechas mueven el track con scroll suave de manera infinita */}
+	{/* Carrusel: flechas mueven el track con scroll suave */}
 	<script>
 		document.querySelectorAll('[data-carousel-track]').forEach((track) => {
 			const el = track as HTMLElement;
 			const wrap = el.parentElement!;
 			const prev = wrap.querySelector('[data-carousel-prev]') as HTMLButtonElement;
 			const next = wrap.querySelector('[data-carousel-next]') as HTMLButtonElement;
-
-			const getCardWidth = () => {
-				const card = el.querySelector('article');
-				return card ? card.getBoundingClientRect().width + 14 : 262;
-			};
-
-			const totalItems = el.querySelectorAll('article').length;
-			const originalCount = totalItems / 3;
-
-			// Inicializar en el bloque central de elementos
-			const initCarousel = () => {
-				const step = getCardWidth();
-				el.scrollLeft = originalCount * step;
-			};
-
-			// Ejecutar después de cargar
-			setTimeout(initCarousel, 100);
-
-			// Manejar scroll infinito y salto invisible al llegar a los extremos
-			let isJumping = false;
-			const handleScroll = () => {
-				if (isJumping) return;
-				const step = getCardWidth();
-				const current = el.scrollLeft;
-				
-				// Límites para activar el salto (un poco antes de llegar a los bordes de los bloques clonados)
-				const minLimit = (originalCount - 0.5) * step;
-				const maxLimit = (originalCount * 2 - 0.5) * step;
-
-				if (current < minLimit) {
-					isJumping = true;
-					el.style.scrollBehavior = 'auto'; // Desactiva scroll suave temporalmente
-					el.scrollLeft = current + originalCount * step;
-					// Forzar un reflujo para asegurar que el navegador aplique el cambio antes de reactivar el smooth
-					el.getBoundingClientRect();
-					el.style.scrollBehavior = 'smooth';
-					isJumping = false;
-				} else if (current > maxLimit) {
-					isJumping = true;
-					el.style.scrollBehavior = 'auto'; // Desactiva scroll suave temporalmente
-					el.scrollLeft = current - originalCount * step;
-					// Forzar un reflujo
-					el.getBoundingClientRect();
-					el.style.scrollBehavior = 'smooth';
-					isJumping = false;
+			// Distancia real entre dos cards (ancho + gap), medida del DOM
+			const step = () => {
+				const cards = el.querySelectorAll('article');
+				if (cards.length >= 2) {
+					return cards[1].getBoundingClientRect().left - cards[0].getBoundingClientRect().left;
 				}
+				return cards[0] ? cards[0].getBoundingClientRect().width + 24 : 272;
 			};
-
-			prev?.addEventListener('click', () => {
-				el.style.scrollBehavior = 'smooth';
-				el.scrollBy({ left: -getCardWidth() });
-			});
-			next?.addEventListener('click', () => {
-				el.style.scrollBehavior = 'smooth';
-				el.scrollBy({ left: getCardWidth() });
-			});
-
-			el.addEventListener('scroll', handleScroll, { passive: true });
-			window.addEventListener('resize', initCarousel);
+			const update = () => {
+				const max = el.scrollWidth - el.clientWidth - 1;
+				prev.disabled = el.scrollLeft <= 0;
+				next.disabled = el.scrollLeft >= max;
+			};
+			prev?.addEventListener('click', () => el.scrollBy({ left: -step(), behavior: 'smooth' }));
+			next?.addEventListener('click', () => el.scrollBy({ left: step(), behavior: 'smooth' }));
+			el.addEventListener('scroll', update, { passive: true });
+			window.addEventListener('resize', update);
+			update();
 		});
 	</script>
 </Layout>
