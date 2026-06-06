@@ -1,0 +1,91 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import { Image } from 'astro:assets';
+import nosotrosEquipo from '../assets/nosotros-equipo.png';
+import holaBg from '../assets/hola-bg.png';
+import holaLetrero from '../assets/hola-letrero.png';
+import holaBuses from '../assets/hola-equipo2.png';
+import holaBus from '../assets/hola-bus.png';
+---
+
+<Layout title="TPP PERÚ | Nosotros">
+	<Navbar />
+
+	{/* ============================================================
+	     Hero "Conoce más sobre TPP Perú" (desde Figma, node 321:3506)
+	     ============================================================ */}
+	<section class="relative h-[730px] min-h-[600px] overflow-hidden">
+		{/* Imagen de fondo (equipo TPP frente al castillo de Lamas) */}
+		<div class="absolute inset-0 z-0">
+			<Image src={nosotrosEquipo} alt="Equipo de TPP Perú Tarapoto" class="w-full h-full object-cover" loading="eager" />
+			{/* Degradado oscuro diagonal (exacto del diseño de Figma) */}
+			<div class="absolute inset-0" style="background: linear-gradient(-16.16deg, rgba(25,21,5,0) 32.68%, rgba(25,21,5,0.8) 68.21%);"></div>
+		</div>
+
+		{/* Contenido: título + subtítulo (alineado a la izquierda) */}
+		<div class="relative z-10 h-full flex items-center px-12 md:px-[120px]">
+			<div class="flex flex-col gap-4 max-w-[496px]">
+				<h1 class="font-heading font-bold text-[36px] leading-[0.95] text-white">
+					Conoce más sobre TPP Perú Tarapoto
+				</h1>
+				<p class="font-body text-[20px] text-[#f3f2ed] leading-relaxed">
+					Un equipo que disfruta mostrar lo mejor de Tarapoto y ayudar a que cada viaje se viva de la mejor manera.
+				</p>
+			</div>
+		</div>
+	</section>
+
+	{/* ============================================================
+	     ¡Hola viajeros aventureros! — presentación del equipo (node 325:5043)
+	     ============================================================ */}
+	<section class="relative overflow-hidden bg-[#f3f2ed] px-8 lg:px-[160px] py-[100px]">
+		{/* Fondo: paisaje de montañas arriba + degradado claro */}
+		<div aria-hidden="true" class="absolute inset-0 pointer-events-none z-0">
+			<Image src={holaBg} alt="" class="absolute top-0 left-0 w-full h-[34%] object-cover" />
+			<div class="absolute inset-0" style="background: linear-gradient(13deg, #f3f2ed 56%, rgba(243,242,237,0.02) 86%);"></div>
+		</div>
+
+		{/* Fila 1: texto izquierda + collage de fotos derecha */}
+		<div class="relative z-10 flex flex-col lg:flex-row gap-12 lg:gap-[90px] items-start">
+			{/* Texto */}
+			<div class="flex flex-1 flex-col gap-3 lg:py-[53px] min-w-0">
+				<div class="flex flex-col items-center border-b border-[#f4b13b]/0 pb-2 mb-2">
+					<h2 class="font-heading font-bold text-[36px] leading-[0.95] text-[#191505] text-center w-full">
+						¡Hola viajeros <span class="font-decoration font-bold text-[48px] text-[#bc8029]">aventureros</span> !
+					</h2>
+				</div>
+				<p class="font-body text-[16px] text-[#121110]/80 leading-relaxed">
+					Somos el equipo de TPP PERÚ, tu puerta de entrada a las maravillas de Tarapoto. Estamos aquí para hacer realidad tus sueños de explorar la selva amazónica, descubrir cataratas impresionantes y sumergirte en la cultura vibrante de esta región fascinante.
+				</p>
+				<p class="font-body text-[16px] text-[#121110]/80 leading-relaxed">
+					Nuestro equipo está compuesto por apasionados expertos en turismo que conocen cada rincón especial de Tarapoto. Desde la planificación de tu itinerario hasta brindarte consejos locales, estamos comprometidos en hacer de tu viaje una experiencia inolvidable llena de aventuras y momentos memorables. Ya sea que busques una escapada relajante en la naturaleza o emocionantes actividades al aire libre, estamos aquí para diseñar el paquete perfecto que se ajuste a tus deseos y necesidades.
+				</p>
+			</div>
+
+			{/* Collage de fotos */}
+			<div class="relative w-full lg:w-[574px] h-[380px] lg:h-[460px] shrink-0">
+				{/* Foto grande: letrero TARAPOTO, marco blanco, rotada -4.5° */}
+				<div class="absolute left-0 top-0 w-[88%] lg:w-[560px] -rotate-[4.5deg] bg-white p-2 shadow-[0_10px_30px_rgba(0,0,0,0.18)] rounded-sm">
+					<Image src={holaLetrero} alt="Letrero TARAPOTO con el equipo TPP" class="w-full h-[260px] lg:h-[320px] object-cover rounded-sm" />
+				</div>
+				{/* Foto pequeña: buses, marco blanco, rotada +7°, superpuesta abajo-derecha */}
+				<div class="absolute right-0 lg:right-2 bottom-0 w-[42%] lg:w-[240px] rotate-[7deg] bg-white p-2 shadow-[0_10px_30px_rgba(0,0,0,0.2)] rounded-sm">
+					<Image src={holaBuses} alt="Buses de TPP Perú" class="w-full h-[150px] lg:h-[180px] object-cover rounded-sm" />
+				</div>
+			</div>
+		</div>
+
+		{/* Fila 2: foto del bus con marco + párrafo de cierre */}
+		<div class="relative z-10 flex flex-col lg:flex-row gap-10 lg:gap-[60px] items-center mt-12 lg:mt-4">
+			{/* Foto del equipo + bus con marco blanco grueso */}
+			<div class="shrink-0 w-full lg:w-[553px] bg-white border-[9px] border-white shadow-[0_10px_30px_rgba(0,0,0,0.18)]">
+				<Image src={holaBus} alt="Equipo de TPP Perú junto al bus" class="w-full h-[240px] lg:h-[268px] object-cover" />
+			</div>
+			{/* Párrafo de cierre */}
+			<p class="flex-1 font-body text-[16px] text-[#121110]/80 leading-relaxed">
+				Nos enorgullece ofrecer un servicio personalizado, atención al detalle y una pasión genuina por compartir la belleza de Tarapoto contigo. Así que, ¿estás listo para embarcarte en una aventura única en Tarapoto? ¡Permítenos ser tu guía y hacer de tu viaje una experiencia extraordinaria que recordarás para siempre! Contáctanos hoy mismo y déjanos ayudarte a descubrir el verdadero espíritu de Tarapoto.
+			</p>
+		</div>
+	</section>
+</Layout>
