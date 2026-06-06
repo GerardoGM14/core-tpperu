@@ -1,6 +1,6 @@
 ---
 import { Image } from 'astro:assets';
-import logo from '../assets/logo_tpperu.png';
+import logo from '../assets/logo.png';
 import suitcaseIcon from '../icons/icon-case.svg';
 ---
 
@@ -15,14 +15,14 @@ import suitcaseIcon from '../icons/icon-case.svg';
     {/* Izquierda: Logo */}
     <div class="flex-1 flex justify-start">
       <a href="/" class="flex items-center">
-        <Image src={logo} alt="TPP PERÚ" class="h-16 w-auto object-contain" />
+        <Image src={logo} alt="TPP PERÚ" class="h-16 w-auto object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.45)]" />
       </a>
     </div>
 
     {/* Centro: Menú */}
     <div class="flex-none px-4">
       <ul class="hidden md:flex items-center gap-14 text-[17px] font-normal tracking-wide text-white">
-        <li><a href="#nosotros" class="hover:text-[#F4B13B] transition-colors">Nosotros</a></li>
+        <li><a href="/nosotros" class="hover:text-[#F4B13B] transition-colors">Nosotros</a></li>
         <li><a href="#tours" class="hover:text-[#F4B13B] transition-colors">Tours</a></li>
         <li class="relative group">
           <a href="#paquetes" class="flex items-center gap-1 hover:text-[#F4B13B] transition-colors">
