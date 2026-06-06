@@ -7,6 +7,31 @@ import backgroundHero from '../assets/background.webp';
 import backgroundPromo from '../assets/background-promo.webp';
 import wspIcon from '../icons/icon-wsp.svg';
 import logoMarca from '../assets/logo_tpperu.png';
+import experienciasBg from '../assets/experiencias-bg.png';
+import disfrutaBg from '../assets/disfruta-bg.png';
+import disfrutaFoto1 from '../assets/disfruta-foto1.png';
+import disfrutaFoto2 from '../assets/disfruta-foto2.png';
+import asifacilBg from '../assets/asifacil-bg.png';
+import asifacilCamino from '../assets/asifacil-camino.svg';
+import porqueBg from '../assets/porque-bg.png';
+import porqueFoto1 from '../assets/porque-foto1.png';
+import porqueFoto2 from '../assets/porque-foto2.png';
+import vive1 from '../assets/vive-1.png';
+import vive2 from '../assets/vive-2.png';
+import vive3 from '../assets/vive-3.png';
+import vive4 from '../assets/vive-4.png';
+import vive5 from '../assets/vive-5.png';
+import vive6 from '../assets/vive-6.png';
+import vive7 from '../assets/vive-7.png';
+import vive8 from '../assets/vive-8.png';
+import contactoBg from '../assets/contacto-bg.png';
+import libroReclamaciones from '../assets/libro-reclamaciones.png';
+import pagoVisa from '../assets/pago-visa.png';
+import pagoMaster from '../assets/pago-master.png';
+import pago3 from '../assets/pago-3.png';
+import hojaIzq from '../assets/hoja-izq.svg';
+import logoTppFooter from '../assets/logo-tpp-footer.png';
+import banderinVive from '../assets/banderin-vive.svg';
 
 // ============================================================
 //  Paquetes destacados — EDITA AQUÍ tus datos reales
@@ -53,6 +78,116 @@ const paquetes = [
 		tagClase: 'bg-[#f26304] text-white',
 		imagen: 'https://images.unsplash.com/photo-1518182170546-07661fd94144?w=500&q=80',
 	},
+	{
+		nombre: 'Paquete Tarapoto 7d/6n con una noche en Laguna',
+		precio: 'S/ 589',
+		precioAntes: 'S/829',
+		descuento: '-45%',
+		tag: 'Nuevo',
+		tagClase: 'bg-[#f4b13b] text-[#121110]',
+		imagen: 'https://images.unsplash.com/photo-1472396961693-142e6e269027?w=500&q=80',
+	},
+	{
+		nombre: 'Paquete Tarapoto 7d/6n con una noche en Laguna',
+		precio: 'S/ 589',
+		precioAntes: 'S/829',
+		descuento: '-45%',
+		tag: 'Cyber',
+		tagClase: 'bg-[#cc140d] text-white',
+		imagen: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=500&q=80',
+	},
+];
+
+// ============================================================
+//  Sección "Explora todas nuestras opciones"
+//  3 bloques de carrusel. Solo "Paquetes" tiene filtros.
+//  cards: reutiliza el mismo array de ejemplo (edita por bloque cuando tengas datos reales).
+// ============================================================
+const bloquesExplora = [
+	{
+		titulo: 'Paquetes',
+		subtitulo: 'Viajes completos sin complicaciones',
+		verTodos: 'Ver todos los Paquetes',
+		filtros: ['Tarapoto', 'Tarapoto Económico', 'Internacional'],
+		cards: paquetes,
+	},
+	{
+		titulo: 'Tours',
+		subtitulo: 'Experiencias de un día para explorar',
+		verTodos: 'Ver todos los Tours',
+		filtros: null,
+		cards: paquetes,
+	},
+	{
+		titulo: 'Alojamientos',
+		subtitulo: 'Descanso en medio de la naturaleza',
+		verTodos: 'Ver todos los Alojamientos',
+		filtros: null,
+		cards: paquetes,
+	},
+];
+
+// ============================================================
+//  Sección "Disfruta el viaje" — beneficios (icono SVG inline + título + texto)
+// ============================================================
+const beneficios = [
+	{
+		titulo: 'Itinerario claro',
+		texto: 'Sabrás exactamente qué harás en cada momento de tu viaje.',
+		icono: '<path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+	},
+	{
+		titulo: 'Horarios definidos',
+		texto: 'Sin improvisaciones ni confusiones, todo está coordinado.',
+		icono: '<circle cx="12" cy="12" r="9" stroke="white" stroke-width="2" fill="none"/><path d="M12 7v5l3 3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+	},
+	{
+		titulo: 'Guía asignado',
+		texto: 'Acompañamiento durante tu experiencia para que aproveches al máximo.',
+		icono: '<circle cx="12" cy="8" r="4" stroke="white" stroke-width="2" fill="none"/><path d="M4 21v-1a6 6 0 016-6h4a6 6 0 016 6v1" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/>',
+	},
+	{
+		titulo: 'Información antes del viaje',
+		texto: 'Recibe todos los detalles necesarios antes de empezar.',
+		icono: '<rect x="5" y="3" width="14" height="18" rx="2" stroke="white" stroke-width="2" fill="none"/><path d="M9 8h6M9 12h6M9 16h4" stroke="white" stroke-width="2" stroke-linecap="round"/>',
+	},
+];
+
+// ============================================================
+//  Sección "Así de fácil es viajar con nosotros" — 4 pasos sobre un camino
+//  marginTop: desfase vertical de cada cartel (replica el zig-zag del diseño)
+// ============================================================
+const pasos = [
+	{ texto: 'Elige tu experiencia',     marginTop: '120px', rotate: '0deg' },
+	{ texto: 'Reserva fácilmente',       marginTop: '58px',  rotate: '0deg' },
+	{ texto: 'Recibe todos los detalles', marginTop: '105px', rotate: '-2deg' },
+	{ texto: 'Disfruta cada momento',    marginTop: '8px',   rotate: '3.7deg' },
+];
+
+// ============================================================
+//  Sección "¿Por qué elegirnos?" — 5 razones
+// ============================================================
+const razones = [
+	{ titulo: 'Atención rápida por WhatsApp',            texto: 'Te respondemos cuando lo necesitas.' },
+	{ titulo: 'Información clara y actualizada',          texto: 'Te explicamos todo fácil, sin enredos.' },
+	{ titulo: 'Acompañamiento antes y durante tu viaje', texto: 'Te acompañamos en cada paso.' },
+	{ titulo: 'Agencia registrada en MINCETUR',          texto: 'Viajas con una agencia formal y confiable.' },
+	{ titulo: 'Reconocimiento en buenas prácticas de CALTUR', texto: 'Nos tomamos en serio tu experiencia.' },
+];
+
+// ============================================================
+//  Sección "Así se vive Tarapoto" — galería (8 fotos a distintas alturas)
+//  align: posición vertical de cada foto en la fila (start / center / end)
+// ============================================================
+const galeriaVive = [
+	{ img: vive1, w: '339px', align: 'items-start' },
+	{ img: vive2, w: '228px', align: 'items-end' },
+	{ img: vive3, w: '205px', align: 'items-start' },
+	{ img: vive4, w: '380px', align: 'items-end' },
+	{ img: vive5, w: '242px', align: 'items-start' },
+	{ img: vive6, w: '382px', align: 'items-end' },
+	{ img: vive7, w: '228px', align: 'items-start' },
+	{ img: vive8, w: '239px', align: 'items-end' },
 ];
 ---
 
@@ -124,7 +259,7 @@ const paquetes = [
 		    Se pinta con máscara CSS para tener color dorado sólido (sin lavado de filtros). */}
 		<div
 			aria-hidden="true"
-			class="pointer-events-none select-none absolute left-4 bottom-0 w-[460px] h-[360px] opacity-80 z-0 bg-[#f26304]"
+			class="pointer-events-none select-none absolute left-2 -bottom-12 w-[560px] h-[440px] opacity-80 z-0 bg-[#f26304]"
 			style={`mask: url(${logoMarca.src}) bottom left / contain no-repeat; -webkit-mask: url(${logoMarca.src}) bottom left / contain no-repeat;`}
 		></div>
 
@@ -217,31 +352,531 @@ const paquetes = [
 		</div>
 	</section>
 
-	{/* Carrusel: flechas mueven el track con scroll suave */}
+	{/* ============================================================
+	     Explora todas nuestras opciones — 3 carruseles sobre fondo selva (desde Figma)
+	     ============================================================ */}
+	<section class="relative overflow-hidden bg-[#191505] pt-[100px] pb-[120px] px-8 md:px-[100px]">
+		{/* Fondo: imagen selva en el 44% superior + degradado hacia #191505 */}
+		<div aria-hidden="true" class="absolute inset-0 pointer-events-none z-0">
+			<Image src={experienciasBg} alt="" class="absolute top-0 left-[-2%] w-[104%] h-[44%] max-w-none object-cover" />
+			<div class="absolute inset-0 bg-gradient-to-b from-[rgba(25,21,5,0.71)] from-[6%] to-[#191505] to-[40%]"></div>
+		</div>
+
+		{/* Header decorativo */}
+		<div class="relative z-10 flex flex-col items-center mb-[71px]">
+			<div class="flex flex-col items-center text-center leading-[0.95]">
+				<p class="font-decoration text-[48px] text-[#f4b13b] -mb-2">Explora todas</p>
+				<p class="font-heading font-bold text-[36px] text-white">nuestras opciones</p>
+			</div>
+			{/* Badge "Vive · Explora · Disfruta" (amarillo, ligeramente rotado) */}
+			<div class="mt-3 -rotate-2 bg-[#f4b13b] rounded-full px-6 py-1.5">
+				<span class="font-body font-medium text-[20px] text-[#121110]">Vive · Explora · Disfruta</span>
+			</div>
+		</div>
+
+		{/* Bloques de carrusel */}
+		<div class="relative z-10 flex flex-col gap-[86px]">
+			{bloquesExplora.map((bloque) => (
+				<div class="flex gap-[25px] items-start">
+					{/* Diamante decorativo dorado (rombo) */}
+					<div class="shrink-0 size-[33px] rotate-45 bg-[rgba(244,177,59,0.13)] flex items-center justify-center mt-1">
+						<div class="size-[10px] bg-[#f4b13b]"></div>
+					</div>
+
+					<div class="flex flex-1 flex-col gap-10 min-w-0">
+					{/* Encabezado del bloque: título + subtítulo + (filtros) + ver todos */}
+					<div class="flex flex-col gap-9">
+						<div class="flex flex-col">
+							<p class="font-decoration text-[32px] text-[#f4b13b] leading-[0.95]">{bloque.titulo}</p>
+							<p class="font-body text-[20px] text-[#f3f2ed]">{bloque.subtitulo}</p>
+						</div>
+						<div class="flex items-end justify-between gap-4 md:px-10 flex-wrap">
+							{/* Filtros (solo Paquetes) */}
+							{bloque.filtros ? (
+								<div class="flex gap-3 items-center flex-wrap">
+									{bloque.filtros.map((filtro, i) => (
+										i === 0 ? (
+											<button type="button" class="h-10 px-6 rounded-full bg-[#f4b13b] font-action font-medium text-[16px] text-[#121110] cursor-pointer">{filtro}</button>
+										) : (
+											<button type="button" class="h-10 px-6 rounded-full border border-white bg-white/[0.02] backdrop-blur-[2.65px] font-action font-medium text-[16px] text-white hover:bg-white/10 transition-colors cursor-pointer">{filtro}</button>
+										)
+									))}
+								</div>
+							) : <div></div>}
+							{/* Ver todos */}
+							<button type="button" class="font-action font-medium text-[18px] text-[#f4b13b] hover:underline cursor-pointer whitespace-nowrap">{bloque.verTodos}</button>
+						</div>
+					</div>
+
+					{/* Carrusel del bloque */}
+					<div class="flex gap-3.5 items-center min-w-0 w-full">
+						<button type="button" data-carousel-prev class="opacity-60 hover:opacity-100 disabled:opacity-20 disabled:cursor-default transition-opacity shrink-0 text-white cursor-pointer" aria-label="Anterior">
+							<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+						</button>
+
+						<div data-carousel-track data-carousel-infinite class="flex flex-1 gap-6 items-stretch min-w-0 overflow-x-auto px-3 py-5 -mx-3 -my-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+							{bloque.cards.map((p) => (
+								<article class="bg-white shadow-[0_6px_20px_-2px_rgba(0,0,0,0.4)] hover:shadow-[0_12px_28px_-4px_rgba(0,0,0,0.55)] transition-shadow flex flex-col gap-3.5 pb-2.5 pt-1.5 px-1.5 rounded-lg shrink-0 w-[248px] snap-start">
+									<div class="relative flex flex-col gap-2 h-[194px] items-center justify-end py-3.5 rounded-md overflow-hidden">
+										<img src={p.imagen} alt={p.nombre} class="absolute inset-0 w-full h-full object-cover rounded-md" />
+										<div class="absolute inset-0 rounded-md bg-gradient-to-b from-[rgba(4,22,20,0.72)] via-transparent to-[rgba(4,22,20,0.3)] mix-blend-multiply"></div>
+										<span class={`absolute top-[23px] left-0 px-3 py-1 text-[13px] font-body font-semibold uppercase ${p.tagClase}`} style="clip-path: polygon(0 0, 100% 0, 90% 100%, 0 100%);">
+											{p.tag}
+										</span>
+										<div class="relative z-10 flex gap-1 text-[#F4B13B] text-[8px]">★★★★★</div>
+									</div>
+									<div class="flex flex-col px-1">
+										<h3 class="font-heading font-semibold text-[16px] leading-[1.11] text-[#191505] text-center">{p.nombre}</h3>
+										<div class="flex flex-col gap-[17px] pt-2.5">
+											<div class="flex gap-2.5 items-end">
+												<div class="flex flex-col text-center">
+													<span class="font-price text-[12px] leading-[0.95] line-through opacity-70 text-[#121110]">{p.precioAntes}</span>
+													<span class="font-price font-bold text-[18px] leading-[1.2] text-[#191505]">{p.precio}</span>
+												</div>
+												{p.descuento && (
+													<span class="bg-[#cc140d] flex items-center justify-center px-2.5 py-1 rounded-full text-[12px] font-heading font-semibold text-white">{p.descuento}</span>
+												)}
+											</div>
+											<button class="bg-[#d3d1c6] hover:brightness-95 transition-all flex gap-1.5 h-10 items-center justify-center px-6 rounded w-full cursor-pointer">
+												<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2v16M2 10h16" stroke="#262522" stroke-width="2" stroke-linecap="round"/></svg>
+												<span class="font-action font-medium text-[14px] text-[#262522]">Añadir a mi viaje</span>
+											</button>
+										</div>
+									</div>
+								</article>
+							))}
+						</div>
+
+						<button type="button" data-carousel-next class="opacity-60 hover:opacity-100 disabled:opacity-20 disabled:cursor-default transition-opacity shrink-0 text-white cursor-pointer" aria-label="Siguiente">
+							<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+						</button>
+					</div>
+					</div>
+				</div>
+			))}
+		</div>
+	</section>
+
+	{/* ============================================================
+	     Disfruta el viaje — beneficios + fotos (desde Figma, node 158:5036)
+	     ============================================================ */}
+	<section class="relative overflow-hidden">
+		{/* Fondo: imagen + degradado claro (de #e5e3da abajo hacia semitransparente arriba) */}
+		<div aria-hidden="true" class="absolute inset-0 pointer-events-none z-0">
+			<Image src={disfrutaBg} alt="" class="absolute inset-0 w-full h-full object-cover" />
+			<div class="absolute inset-0 bg-gradient-to-t from-[#e5e3da] from-[31%] to-[rgba(229,227,218,0.75)]"></div>
+		</div>
+
+		<div class="relative z-10 flex flex-col lg:flex-row gap-10 items-center pt-[100px] pb-[80px] pr-8 lg:pr-[100px] pl-8 lg:pl-0">
+
+			{/* Izquierda: composición de 2 fotos con marcos */}
+			<div class="relative w-full lg:w-[824px] shrink-0 h-[500px] lg:h-[620px]">
+				{/* Foto principal (cascada), marco blanco, rotada -4.5° */}
+				<div class="absolute left-0 lg:left-8 top-2 w-[70%] lg:w-[600px] -rotate-[4.5deg] bg-white p-2 shadow-[0_10px_30px_rgba(0,0,0,0.18)] rounded-sm">
+					<Image src={disfrutaFoto1} alt="Experiencia en Tarapoto" class="w-full h-[300px] lg:h-[380px] object-cover rounded-sm" />
+				</div>
+				{/* Foto secundaria (manos), marco blanco, rotada +7°, superpuesta abajo-derecha */}
+				<div class="absolute right-2 lg:right-12 bottom-2 w-[52%] lg:w-[360px] rotate-[7deg] bg-white p-2 shadow-[0_10px_30px_rgba(0,0,0,0.2)] rounded-sm">
+					<Image src={disfrutaFoto2} alt="Mirador de Tarapoto" class="w-full h-[180px] lg:h-[230px] object-cover rounded-sm" />
+				</div>
+			</div>
+
+			{/* Derecha: header + beneficios + botones */}
+			<div class="flex flex-1 flex-col gap-12 items-start min-w-0 w-full">
+				{/* Header */}
+				<div class="flex flex-col gap-[23px] items-center text-center w-full">
+					<div class="flex flex-col items-center leading-[0.95] border-b border-[#f4b13b]/0 pb-6 w-full">
+						<p class="font-decoration text-[48px] text-[#bc8029] -mb-1">Disfruta el viaje</p>
+						<p class="font-heading font-bold text-[36px] text-[#191505] max-w-[430px]">nosotros nos encargamos del resto</p>
+					</div>
+					<p class="font-body text-[18px] text-[#121110]/80 max-w-[386px]">
+						Planificamos tu experiencia de inicio a fin para que disfrutes Tarapoto sin preocupaciones.
+					</p>
+				</div>
+
+				{/* Lista de beneficios */}
+				<div class="flex flex-col gap-[25px] w-full">
+					{beneficios.map((b) => (
+						<div class="flex gap-[18px] items-start w-full">
+							<div class="bg-[#5b6d12] flex items-center justify-center rounded-full shrink-0 size-12">
+								<svg width="24" height="24" viewBox="0 0 24 24" fill="none" set:html={b.icono}></svg>
+							</div>
+							<div class="flex flex-1 flex-col gap-1.5 min-w-0">
+								<p class="font-heading font-bold text-[18px] leading-[0.95] text-[#262522]">{b.titulo}</p>
+								<p class="font-body text-[16px] text-[#121110]/80">{b.texto}</p>
+							</div>
+						</div>
+					))}
+				</div>
+
+				{/* Botones */}
+				<div class="flex gap-[17px] items-center w-full">
+					<button type="button" class="flex flex-1 gap-1.5 h-12 items-center justify-center px-7 rounded bg-[#f4b13b] hover:brightness-105 transition-all cursor-pointer">
+						<svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M20 8v6M23 11h-6M9 11a4 4 0 100-8 4 4 0 000 8zM1 21v-1a6 6 0 016-6h4a6 6 0 016 6v1" stroke="#121110" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+						<span class="font-action font-medium text-[18px] text-[#121110] whitespace-nowrap">Reserva con un Asesor</span>
+					</button>
+					<button type="button" class="flex flex-1 gap-1.5 h-12 items-center justify-center px-7 rounded bg-[#d3d1c6] hover:brightness-95 transition-all cursor-pointer">
+						<svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#262522" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+						<span class="font-action font-medium text-[18px] text-[#262522] whitespace-nowrap">Agregar al vuelo</span>
+					</button>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	{/* ============================================================
+	     Así de fácil es viajar con nosotros — 4 pasos sobre un camino (node 158:5334)
+	     ============================================================ */}
+	<section class="relative overflow-hidden pt-[60px] pb-[100px] px-8 lg:px-[100px]">
+		{/* Fondo: foto laguna muy tenue + degradado claro #e5e3da */}
+		<div aria-hidden="true" class="absolute inset-0 pointer-events-none z-0">
+			<Image src={asifacilBg} alt="" class="absolute inset-0 w-full h-full object-cover" />
+			<div class="absolute inset-0" style="background: linear-gradient(0deg, #e5e3da 2%, rgba(229,227,218,0.63) 32%, rgba(229,227,218,0.90) 78%, #e5e3da 100%);"></div>
+		</div>
+
+		{/* Título + subtítulo */}
+		<div class="relative z-10 flex flex-col gap-[17px] items-start w-[434px] max-w-full mb-2">
+			<h2 class="relative font-heading font-bold text-[36px] leading-[0.95] text-[#191505]">
+				Así de <span class="font-decoration font-bold text-[48px] text-[#bc8029] leading-none">fácil</span> es viajar con nosotros
+			</h2>
+			<p class="font-body text-[18px] text-[#121110]/80 max-w-[382px]">
+				Todo listo en pocos pasos para que solo te preocupes por disfrutar.
+			</p>
+		</div>
+
+		{/* Camino serpenteante (línea punteada de fondo) */}
+		<div class="relative z-[5] mt-2 hidden lg:block">
+			<img src={asifacilCamino.src} alt="" aria-hidden="true" class="absolute left-[-4%] top-[60px] w-[108%] max-w-none rotate-[1.54deg] pointer-events-none" />
+		</div>
+
+		{/* 4 pasos con carteles verde oliva a distintas alturas */}
+		<div class="relative z-10 flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between lg:gap-0 max-w-[1312px] mt-6 lg:mt-0">
+			{pasos.map((paso) => (
+				<div class="flex flex-col items-center lg:items-start shrink-0" style={`margin-top: ${paso.marginTop};`}>
+					{/* Cartel banderín verde oliva con cola inferior */}
+					<div class="relative" style={`transform: rotate(${paso.rotate});`}>
+						<div class="bg-[#5b6d12] rounded-[10px] px-7 py-4 shadow-[0_8px_18px_rgba(56,51,19,0.25)] max-w-[220px]">
+							<p class="font-body font-medium text-[20px] text-[#e5e3da] text-center leading-tight">{paso.texto}</p>
+						</div>
+						{/* Cola/puntero hacia el camino */}
+						<div class="absolute left-1/2 -translate-x-1/2 -bottom-2 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[12px] border-t-[#5b6d12]"></div>
+					</div>
+				</div>
+			))}
+		</div>
+	</section>
+
+	{/* ============================================================
+	     ¿Por qué elegirnos? — 5 razones + 2 fotos (node 158:5289)
+	     ============================================================ */}
+	<section class="relative bg-[#191505] pt-[100px] px-8 lg:px-[68px]">
+		{/* Fondo: imagen + degradado oscuro (overflow propio para no recortar las fotos que sobresalen) */}
+		<div aria-hidden="true" class="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+			<Image src={porqueBg} alt="" class="absolute inset-0 w-full h-full object-cover" />
+			<div class="absolute inset-0 bg-gradient-to-b from-[rgba(25,21,5,0.87)] from-[11%] to-[#191505] to-[84%]"></div>
+		</div>
+
+		<div class="relative z-10 flex flex-col gap-10 items-center w-full">
+			<h2 class="font-heading font-bold text-[36px] text-[#f4b13b] text-center">¿Por qué elegirnos?</h2>
+
+			{/* 5 razones separadas por divisores verticales */}
+			<div class="flex flex-col md:flex-row gap-8 md:gap-[34px] items-stretch w-full max-w-[1312px]">
+				{razones.map((r, i) => (
+					<div class="flex flex-1 gap-8 md:gap-[34px]">
+						{i !== 0 && <div class="hidden md:block w-px bg-white/15 self-stretch"></div>}
+						<div class="flex flex-1 flex-col gap-5 items-center text-center">
+							{/* Diamante dorado decorativo */}
+							<div class="shrink-0 size-[33px] rotate-45 bg-[rgba(244,177,59,0.13)] flex items-center justify-center">
+								<div class="size-[10px] bg-[#f4b13b]"></div>
+							</div>
+							<p class="font-heading font-bold text-[18px] leading-[0.95] text-white">{r.titulo}</p>
+							<p class="font-body text-[16px] text-[#f3f2ed]">{r.texto}</p>
+						</div>
+					</div>
+				))}
+			</div>
+
+			{/* 2 fotos con marcos rotados — sobresalen hacia abajo y cruzan la unión con la sección siguiente */}
+			<div class="relative w-full max-w-[834px] h-[240px] lg:h-[270px] mt-2 z-20">
+				{/* Foto izquierda (grupo + buses), rotada -3.9° */}
+				<div class="absolute left-0 top-0 translate-y-12 lg:translate-y-20 w-[62%] lg:w-[546px] -rotate-[3.9deg] bg-white p-2 shadow-[0_12px_30px_rgba(0,0,0,0.4)] rounded-sm">
+					<Image src={porqueFoto1} alt="Equipo TPP Perú" class="w-full h-[230px] lg:h-[300px] object-cover rounded-sm" />
+				</div>
+				{/* Foto derecha (certificado), rotada +12.4° */}
+				<div class="absolute right-2 lg:right-8 -top-8 translate-y-12 lg:translate-y-20 w-[40%] lg:w-[268px] rotate-[12deg] bg-white p-2 shadow-[0_12px_30px_rgba(0,0,0,0.45)] rounded-sm">
+					<Image src={porqueFoto2} alt="Certificación" class="w-full h-[210px] lg:h-[300px] object-cover rounded-sm" />
+				</div>
+			</div>
+		</div>
+	</section>
+
+	{/* ============================================================
+	     Así se vive Tarapoto — galería de experiencias (node 158:5361)
+	     ============================================================ */}
+	<section class="relative overflow-hidden bg-[#e5e3da] pt-[140px] pb-[100px] px-8 lg:px-[100px]">
+		{/* Badge "Así se vive Tarapoto" sobre banderín de pincelada dorada (desde Figma) */}
+		<div class="relative z-10 mb-5 inline-block -rotate-[2.41deg]">
+			{/* Banderín: textura de pincelada dorada como fondo (máscara CSS) */}
+			<div
+				aria-hidden="true"
+				class="absolute -inset-x-6 -inset-y-3 bg-[#c78d28] z-0"
+				style={`mask: url(${banderinVive.src}) center / 100% 100% no-repeat; -webkit-mask: url(${banderinVive.src}) center / 100% 100% no-repeat;`}
+			></div>
+			<div class="relative z-10 px-6 py-3 flex flex-col items-center leading-[0.95]">
+				<p class="font-heading font-bold text-[36px] text-white text-center">Así se vive</p>
+				<p class="font-decoration text-[48px] text-[#181404] text-center">Tarapoto</p>
+			</div>
+		</div>
+
+		{/* Galería horizontal con scroll, fotos a distintas alturas */}
+		<div class="relative z-10 flex gap-3.5 items-center h-[322px] overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+			{galeriaVive.map((g) => (
+				<div class={`flex h-full shrink-0 ${g.align}`} style={`width: ${g.w};`}>
+					<Image src={g.img} alt="Experiencia en Tarapoto" class="w-full h-[280px] object-cover rounded-[7px]" />
+				</div>
+			))}
+		</div>
+	</section>
+
+	{/* ============================================================
+	     Contacto + Banner + Footer (node 309:7302)
+	     ============================================================ */}
+	<footer class="relative overflow-hidden bg-[#191505] pt-[120px] pb-[65px] px-8 lg:px-[100px]">
+		{/* Fondo: imagen + degradado oscuro */}
+		<div aria-hidden="true" class="absolute inset-0 pointer-events-none z-0">
+			<Image src={contactoBg} alt="" class="absolute top-0 left-0 w-full h-[81%] object-cover" />
+			<div class="absolute inset-0 bg-gradient-to-b from-[rgba(25,21,5,0.81)] from-[19%] to-[#191505] to-[79%]"></div>
+		</div>
+
+		<div class="relative z-10 flex flex-col gap-[61px] items-center w-full max-w-[1312px] mx-auto">
+
+			{/* === Formulario de contacto === */}
+			<div class="flex flex-col lg:flex-row gap-12 lg:gap-[87px] items-start w-full">
+				{/* Izquierda: título + descripción */}
+				<div class="flex gap-[49px] items-start w-full lg:w-[553px] shrink-0">
+					<div class="hidden lg:flex items-center h-[68px] shrink-0">
+						<div class="size-[33px] rotate-45 bg-[rgba(244,177,59,0.13)] flex items-center justify-center">
+							<div class="size-[10px] bg-[#f4b13b]"></div>
+						</div>
+					</div>
+					<div class="flex flex-col gap-5 items-start lg:w-[434px]">
+						<p class="font-heading font-bold text-[36px] leading-[0.95] text-white">¿Prefieres que te ayudemos a elegir?</p>
+						<div class="w-[386px] max-w-full h-px bg-[#f4b13b]/40"></div>
+						<p class="font-body text-[18px] text-white/80 max-w-[382px]">
+							Déjanos tu número y un asesor se pondrá en contacto contigo para ayudarte a planificar tu viaje.
+						</p>
+					</div>
+				</div>
+
+				{/* Derecha: card con formulario */}
+				<form class="flex flex-1 flex-col gap-9 bg-[#191505] rounded px-[30px] pt-[40px] pb-[30px] shadow-[0_0_17.6px_12px_rgba(0,0,0,0.3)] w-full">
+					<div class="flex flex-col gap-5 w-full">
+						<label class="flex flex-col gap-2 w-full">
+							<span class="font-body font-medium text-[14px] text-[#f9f8f6]/80">Nombre</span>
+							<input type="text" placeholder="Ingrese su nombre completo" class="h-10 px-[18px] py-2.5 rounded bg-[#383313]/50 border border-[#383313] text-white text-[16px] placeholder:text-[#63605b] focus:border-[#f4b13b] outline-none transition-colors" />
+						</label>
+						<label class="flex flex-col gap-2 w-full">
+							<span class="font-body font-medium text-[14px] text-[#f9f8f6]/80">Teléfono</span>
+							<input type="tel" placeholder="Ingrese su número telefónico" class="h-10 px-[18px] py-2.5 rounded bg-[#383313]/50 border border-[#383313] text-white text-[16px] placeholder:text-[#63605b] focus:border-[#f4b13b] outline-none transition-colors" />
+						</label>
+						<label class="flex flex-col gap-2 w-full">
+							<span class="font-body font-medium text-[14px] text-[#f9f8f6]/80">Mensaje</span>
+							<textarea rows="3" placeholder="Ingrese un mensaje (observaciones)" class="px-[18px] py-2.5 rounded bg-[#383313]/50 border border-[#383313] text-white text-[16px] placeholder:text-[#63605b] focus:border-[#f4b13b] outline-none transition-colors resize-none"></textarea>
+						</label>
+					</div>
+					<button type="submit" class="flex gap-1.5 h-12 items-center justify-center px-7 rounded bg-[#f4b13b] hover:brightness-105 transition-all w-full cursor-pointer">
+						<span class="font-action font-medium text-[18px] text-[#121110]">Te llamamos</span>
+						<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.13.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0122 16.92z" stroke="#121110" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+					</button>
+				</form>
+			</div>
+
+			{/* === Banner verde === */}
+			<div class="relative bg-[#5b6d12] rounded-xl flex flex-col gap-3.5 items-center justify-center text-center px-8 py-[30px] w-full overflow-hidden">
+				{/* Hojas decorativas en las esquinas (desde Figma). La derecha es espejo de la izquierda. */}
+				<img src={hojaIzq.src} alt="" aria-hidden="true" class="pointer-events-none select-none absolute left-0 top-0 h-full w-auto z-0 opacity-50" />
+				<img src={hojaIzq.src} alt="" aria-hidden="true" class="pointer-events-none select-none absolute right-0 top-0 h-full w-auto z-0 opacity-50 -scale-x-100" />
+
+				<div class="relative z-10 flex flex-col gap-1 items-center leading-[0.95]">
+					<div class="flex flex-wrap gap-x-3.5 items-center justify-center">
+						<span class="font-heading font-bold text-[24px] text-white">Las</span>
+						<span class="font-decoration text-[32px] text-[#b8e230]">mejores experiencias</span>
+					</div>
+					<p class="font-heading font-bold text-[24px] text-white">están más cerca de lo que imaginas</p>
+				</div>
+				<p class="relative z-10 font-body text-[18px] text-[#dfdfdf]/80 text-center">
+					Esperamos ayudarte a vivir una experiencia inolvidable en Tarapoto.
+				</p>
+			</div>
+
+			{/* === Footer === */}
+			<div class="flex flex-col gap-8 w-full">
+				<div class="flex flex-col lg:flex-row gap-10 lg:gap-8 items-start justify-between pb-10 w-full">
+					{/* Marca + redes */}
+					<div class="flex flex-col gap-4 items-start">
+						<Image src={logoTppFooter} alt="TPP Perú" class="w-[160px] brightness-0 invert" />
+						<p class="font-body text-[16px] text-[#f3f2ed]/80">TPP PERU SAC - RUC: 20609758199</p>
+						<div class="flex gap-[17px] items-center mt-1">
+							{/* Facebook */}
+							<a href="#" aria-label="Facebook" class="size-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
+								<svg width="18" height="18" viewBox="0 0 24 24" fill="#f3f2ed"><path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.96.93-1.96 1.89v2.25h3.33l-.53 3.49h-2.8V24C19.61 23.1 24 18.1 24 12.07z"/></svg>
+							</a>
+							{/* TikTok */}
+							<a href="#" aria-label="TikTok" class="size-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
+								<svg width="18" height="18" viewBox="0 0 24 24" fill="#f3f2ed"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64c.298 0 .595.045.88.135V9.4a6.33 6.33 0 00-1-.05A6.34 6.34 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1.04-.1z"/></svg>
+							</a>
+							{/* Instagram */}
+							<a href="#" aria-label="Instagram" class="size-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
+								<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 3.25.15 4.77 1.69 4.92 4.92.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.15 3.23-1.66 4.77-4.92 4.92-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-3.26-.15-4.77-1.7-4.92-4.92-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85C2.38 3.92 3.9 2.38 7.15 2.23 8.42 2.17 8.8 2.16 12 2.16zM12 0C8.74 0 8.33.01 7.05.07c-4.35.2-6.78 2.62-6.98 6.98C.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.2 4.36 2.62 6.78 6.98 6.98C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c4.35-.2 6.78-2.62 6.98-6.98.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.2-4.35-2.62-6.78-6.98-6.98C15.67.01 15.26 0 12 0zm0 5.84a6.16 6.16 0 100 12.32 6.16 6.16 0 000-12.32zM12 16a4 4 0 110-8 4 4 0 010 8zm6.41-10.85a1.44 1.44 0 100 2.88 1.44 1.44 0 000-2.88z" fill="#f3f2ed"/></svg>
+							</a>
+						</div>
+					</div>
+
+					{/* Contacto */}
+					<div class="flex flex-col gap-[19px] items-start">
+						<div class="flex flex-col gap-3">
+							<div class="flex gap-3 items-center">
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.13.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0122 16.92z" stroke="#f4b13b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+								<span class="font-body text-[16px] text-[#f3f2ed]">933 255 002</span>
+							</div>
+							<div class="flex gap-3 items-center">
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z" stroke="#f4b13b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 6l-10 7L2 6" stroke="#f4b13b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+								<span class="font-body text-[16px] text-[#f3f2ed]">info@tarapototours.com</span>
+							</div>
+							<div class="flex gap-3 items-center">
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" stroke="#f4b13b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="10" r="3" stroke="#f4b13b" stroke-width="2"/></svg>
+								<span class="font-body text-[16px] text-[#f3f2ed]">Jr. Lamas 165B - Tarapoto</span>
+							</div>
+						</div>
+						{/* Atención 24/7 badge */}
+						<div class="bg-[#f26304] rounded px-3.5 py-2 flex gap-1.5 items-end">
+							<span class="font-heading font-semibold text-[14px] text-white">Atención 24/7:</span>
+							<span class="font-heading font-bold text-[18px] text-white leading-none">948 461 653</span>
+						</div>
+					</div>
+
+					{/* Newsletter */}
+					<div class="flex flex-col gap-[18px] items-start w-full lg:w-[384px]">
+						<div class="flex flex-col gap-4 text-[#f3f2ed]">
+							<p class="font-heading font-bold text-[18px]">Suscríbete a nuestro Newsletter</p>
+							<p class="font-body text-[16px]">Tu próximo viaje puede empezar aquí. Suscríbete y descubre mucho más...</p>
+						</div>
+						<form class="flex w-full">
+							<input type="email" placeholder="Correo Electrónico" class="flex-1 min-w-0 h-11 px-[18px] py-2.5 rounded-l bg-[#383313]/50 border border-[#383313] text-white text-[16px] placeholder:text-[#63605b] focus:border-[#f4b13b] outline-none transition-colors" />
+							<button type="submit" class="shrink-0 h-11 px-6 rounded-r bg-[#f4b13b] hover:brightness-105 transition-all font-action font-medium text-[16px] text-[#121110] cursor-pointer">Suscríbete</button>
+						</form>
+						<label class="flex gap-2.5 items-center cursor-pointer">
+							<span class="size-5 rounded bg-[#f4b13b] flex items-center justify-center shrink-0">
+								<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#121110" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+							</span>
+							<span class="font-body text-[16px] text-[#f3f2ed]">Acepto las políticas de Privacidad</span>
+						</label>
+					</div>
+				</div>
+
+				{/* Línea divisoria */}
+				<div class="w-full h-px bg-white/15"></div>
+
+				{/* Pagos + reclamaciones + términos */}
+				<div class="flex flex-col lg:flex-row gap-6 items-center justify-between w-full">
+					{/* Métodos de pago */}
+					<div class="flex gap-5 items-center">
+						<Image src={pagoVisa} alt="Visa" class="h-[42px] w-[73px] object-contain rounded-[5px]" />
+						<Image src={pagoMaster} alt="Mastercard" class="h-[42px] w-[73px] object-contain rounded-[5px]" />
+						<Image src={pago3} alt="Método de pago" class="h-[42px] w-[73px] object-contain rounded-[5px]" />
+					</div>
+					{/* Libro de reclamaciones */}
+					<Image src={libroReclamaciones} alt="Libro de reclamaciones" class="h-[48px] w-auto object-contain" />
+					{/* Términos + copyright */}
+					<div class="flex flex-col gap-4 items-center lg:items-end text-[#f3f2ed]">
+						<div class="flex gap-10 text-[16px]">
+							<a href="#" class="hover:underline">Términos y condiciones</a>
+							<a href="#" class="hover:underline">Políticas de Privacidad</a>
+						</div>
+						<p class="font-body text-[12px]">© 2026 TTP Perú Tarapoto. Todos los derechos reservados.</p>
+					</div>
+				</div>
+			</div>
+		</div>
+	</footer>
+
+	{/* Carruseles: finito (flechas con límites) e infinito (loop sin fin con clones) */}
 	<script>
-		document.querySelectorAll('[data-carousel-track]').forEach((track) => {
+		// Distancia entre dos cards consecutivas (ancho + gap), medida del DOM
+		function stepOf(el: HTMLElement) {
+			const cards = el.querySelectorAll('article');
+			if (cards.length >= 2) {
+				return cards[1].getBoundingClientRect().left - cards[0].getBoundingClientRect().left;
+			}
+			return cards[0] ? cards[0].getBoundingClientRect().width + 24 : 272;
+		}
+
+		// ---- Carrusel finito: flechas con scroll suave, deshabilitadas en extremos ----
+		document.querySelectorAll('[data-carousel-track]:not([data-carousel-infinite])').forEach((track) => {
 			const el = track as HTMLElement;
 			const wrap = el.parentElement!;
 			const prev = wrap.querySelector('[data-carousel-prev]') as HTMLButtonElement;
 			const next = wrap.querySelector('[data-carousel-next]') as HTMLButtonElement;
-			// Distancia real entre dos cards (ancho + gap), medida del DOM
-			const step = () => {
-				const cards = el.querySelectorAll('article');
-				if (cards.length >= 2) {
-					return cards[1].getBoundingClientRect().left - cards[0].getBoundingClientRect().left;
-				}
-				return cards[0] ? cards[0].getBoundingClientRect().width + 24 : 272;
-			};
 			const update = () => {
 				const max = el.scrollWidth - el.clientWidth - 1;
 				prev.disabled = el.scrollLeft <= 0;
 				next.disabled = el.scrollLeft >= max;
 			};
-			prev?.addEventListener('click', () => el.scrollBy({ left: -step(), behavior: 'smooth' }));
-			next?.addEventListener('click', () => el.scrollBy({ left: step(), behavior: 'smooth' }));
+			prev?.addEventListener('click', () => el.scrollBy({ left: -stepOf(el), behavior: 'smooth' }));
+			next?.addEventListener('click', () => el.scrollBy({ left: stepOf(el), behavior: 'smooth' }));
 			el.addEventListener('scroll', update, { passive: true });
 			window.addEventListener('resize', update);
 			update();
+		});
+
+		// ---- Carrusel infinito: clona el set de cards a ambos lados y salta sin costuras ----
+		document.querySelectorAll('[data-carousel-infinite]').forEach((track) => {
+			const el = track as HTMLElement;
+			const wrap = el.parentElement!;
+			const prev = wrap.querySelector('[data-carousel-prev]') as HTMLButtonElement;
+			const next = wrap.querySelector('[data-carousel-next]') as HTMLButtonElement;
+
+			const originals = Array.from(el.children) as HTMLElement[];
+			const setCount = originals.length;
+			if (setCount === 0) return;
+
+			// Clonar el set completo antes y después (marcados como clones para no duplicar listeners)
+			const head = originals.map((c) => c.cloneNode(true) as HTMLElement);
+			const tail = originals.map((c) => c.cloneNode(true) as HTMLElement);
+			head.forEach((c) => { c.setAttribute('aria-hidden', 'true'); el.insertBefore(c, el.firstChild); });
+			tail.forEach((c) => { c.setAttribute('aria-hidden', 'true'); el.appendChild(c); });
+
+			// Ancho de un set completo (para posicionar y para los saltos)
+			const setWidth = () => stepOf(el) * setCount;
+
+			// Arrancar posicionado en el set "real" del medio
+			let ready = false;
+			const init = () => {
+				el.scrollLeft = setWidth();
+				ready = true;
+			};
+			// Esperar a que las imágenes midan bien
+			requestAnimationFrame(() => requestAnimationFrame(init));
+
+			// Salto invisible: si entras en la zona de clones, reposiciona al set real equivalente
+			let ticking = false;
+			el.addEventListener('scroll', () => {
+				if (!ready || ticking) return;
+				ticking = true;
+				requestAnimationFrame(() => {
+					const w = setWidth();
+					if (el.scrollLeft < w * 0.5) {
+						el.scrollLeft += w;
+					} else if (el.scrollLeft >= w * 1.5) {
+						el.scrollLeft -= w;
+					}
+					ticking = false;
+				});
+			}, { passive: true });
+
+			prev?.addEventListener('click', () => el.scrollBy({ left: -stepOf(el), behavior: 'smooth' }));
+			next?.addEventListener('click', () => el.scrollBy({ left: stepOf(el), behavior: 'smooth' }));
+			window.addEventListener('resize', () => { if (ready) el.scrollLeft = setWidth() + (el.scrollLeft % setWidth()); });
 		});
 	</script>
 </Layout>
