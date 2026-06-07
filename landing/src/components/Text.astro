@@ -1,5 +1,5 @@
 ---
-interface Props {
+export interface Props {
   as?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'p' | 'span' | 'a';
   variant?: 'body' | 'action' | 'heading' | 'price' | 'decoration';
   className?: string;
@@ -15,7 +15,7 @@ const {
   ...rest 
 } = Astro.props;
 
-const variants = {
+const variants: Record<string, string> = {
   body: 'font-body',
   action: 'font-action',
   heading: 'font-heading',
