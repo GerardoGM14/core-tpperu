@@ -1,0 +1,76 @@
+---
+// ============================================================
+//  ContactForm — bloque reutilizable "¿Prefieres que te ayudemos a elegir?"
+//  Props:
+//    withBackground → true (default): se renderiza como <section> con su
+//      propio fondo cascada + degradado (úsalo como sección independiente,
+//      ej. en Nosotros).
+//    withBackground=false: el bloque sin fondo propio, para apoyarlo sobre
+//      un contenedor que ya tenga fondo (ej. dentro del footer del index).
+//    class → clases extra para el <section> (espaciados). Solo aplica con fondo.
+// ============================================================
+import { Image } from 'astro:assets';
+import contactoBg from '../assets/contacto-bg.png';
+
+interface Props {
+	withBackground?: boolean;
+	class?: string;
+}
+
+const { withBackground = true, class: className = 'pt-[120px] pb-[100px]' } = Astro.props;
+
+const Wrapper = withBackground ? 'section' : 'div';
+const wrapperClass = withBackground
+	? `relative overflow-hidden bg-[#191505] px-8 lg:px-[100px] ${className}`
+	: 'w-full';
+---
+
+<Wrapper class={wrapperClass}>
+	{withBackground && (
+		<div aria-hidden="true" class="absolute inset-0 pointer-events-none z-0">
+			<Image src={contactoBg} alt="" class="absolute top-0 left-0 w-full h-full object-cover" />
+			<div class="absolute inset-0 bg-gradient-to-b from-[rgba(25,21,5,0.81)] from-[19%] to-[#191505] to-[79%]"></div>
+		</div>
+	)}
+
+	{/* Bloque: título + formulario */}
+	<div class="relative z-10 flex flex-col lg:flex-row gap-12 lg:gap-[87px] items-start w-full max-w-[1312px] mx-auto">
+		{/* Izquierda: título + descripción */}
+		<div class="flex gap-[49px] items-start w-full lg:w-[553px] shrink-0">
+			<div class="hidden lg:flex items-center h-[68px] shrink-0">
+				<div class="size-[33px] rotate-45 bg-[rgba(244,177,59,0.13)] flex items-center justify-center">
+					<div class="size-[10px] bg-[#f4b13b]"></div>
+				</div>
+			</div>
+			<div class="flex flex-col gap-5 items-start lg:w-[434px]">
+				<p class="font-heading font-bold text-[36px] leading-[0.95] text-white">¿Prefieres que te ayudemos a elegir?</p>
+				<div class="w-[386px] max-w-full h-px bg-[#f4b13b]/40"></div>
+				<p class="font-body text-[18px] text-white/80 max-w-[382px]">
+					Déjanos tu número y un asesor se pondrá en contacto contigo para ayudarte a planificar tu viaje.
+				</p>
+			</div>
+		</div>
+
+		{/* Derecha: card con formulario */}
+		<form class="flex flex-1 flex-col gap-9 bg-[#191505] rounded px-[30px] pt-[40px] pb-[30px] shadow-[0_0_17.6px_12px_rgba(0,0,0,0.3)] w-full">
+			<div class="flex flex-col gap-5 w-full">
+				<label class="flex flex-col gap-2 w-full">
+					<span class="font-body font-medium text-[14px] text-[#f9f8f6]/80">Nombre</span>
+					<input type="text" placeholder="Ingrese su nombre completo" class="h-10 px-[18px] py-2.5 rounded bg-[#383313]/50 border border-[#383313] text-white text-[16px] placeholder:text-[#63605b] focus:border-[#f4b13b] outline-none transition-colors" />
+				</label>
+				<label class="flex flex-col gap-2 w-full">
+					<span class="font-body font-medium text-[14px] text-[#f9f8f6]/80">Teléfono</span>
+					<input type="tel" placeholder="Ingrese su número telefónico" class="h-10 px-[18px] py-2.5 rounded bg-[#383313]/50 border border-[#383313] text-white text-[16px] placeholder:text-[#63605b] focus:border-[#f4b13b] outline-none transition-colors" />
+				</label>
+				<label class="flex flex-col gap-2 w-full">
+					<span class="font-body font-medium text-[14px] text-[#f9f8f6]/80">Mensaje</span>
+					<textarea rows="3" placeholder="Ingrese un mensaje (observaciones)" class="px-[18px] py-2.5 rounded bg-[#383313]/50 border border-[#383313] text-white text-[16px] placeholder:text-[#63605b] focus:border-[#f4b13b] outline-none transition-colors resize-none"></textarea>
+				</label>
+			</div>
+			<button type="submit" class="flex gap-1.5 h-12 items-center justify-center px-7 rounded bg-[#f4b13b] hover:brightness-105 transition-all w-full cursor-pointer">
+				<span class="font-action font-medium text-[18px] text-[#121110]">Te llamamos</span>
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.13.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0122 16.92z" stroke="#121110" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+			</button>
+		</form>
+	</div>
+</Wrapper>
