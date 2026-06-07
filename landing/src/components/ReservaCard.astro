@@ -1,0 +1,134 @@
+---
+// ============================================================
+//  ReservaCard — card de reserva de un paquete (node 253:6367 / 253:6306)
+//  Se usa en el hero y en el cuerpo de la vista de detalle.
+//  Props:
+//    paquete → objeto del paquete (de src/data/paquetes.js)
+// ============================================================
+import { tagClase } from '../data/paquetes.js';
+
+interface Props {
+	paquete: {
+		slug: string;
+		nombre: string;
+		categoria: string;
+		precio: string;
+		precioAntes?: string;
+		descuento?: string;
+		tag: string;
+		imagen: string;
+	};
+}
+
+const { paquete } = Astro.props;
+---
+
+<div
+	class="relative bg-[#f3f2ed] flex flex-col gap-5 items-start pt-7 pb-6 px-6 rounded-md w-[396px] max-w-full shadow-[0_10px_40px_-8px_rgba(25,21,5,0.35)]"
+	data-reserva-card
+	data-slug={paquete.slug}
+	data-nombre={paquete.nombre}
+	data-imagen={paquete.imagen}
+	data-precio={paquete.precio}
+	data-precio-antes={paquete.precioAntes ?? ''}
+	data-descuento={paquete.descuento ?? ''}
+>
+	{/* Tag de esquina (banderín) */}
+	<div class={`absolute -top-3 left-0 flex items-center pl-3 pr-5 h-[26px] ${tagClase(paquete.tag)}`} style="clip-path: polygon(0 0, 100% 0, 88% 100%, 0 100%);">
+		<span class="font-body font-semibold text-[13px] uppercase">{paquete.tag}</span>
+	</div>
+
+	{/* Breadcrumb + título */}
+	<div class="flex flex-col gap-1.5 items-start w-full">
+		<p class="font-body text-[16px] text-[#4e4b47]">Paquetes &gt; {paquete.categoria}</p>
+		<p class="font-heading font-bold text-[28px] leading-[0.95] text-[#191505]">{paquete.nombre}</p>
+	</div>
+
+	{/* Precio + descuento */}
+	<div class="flex gap-2 items-end">
+		<div class="flex flex-col items-start">
+			{paquete.precioAntes && (
+				<span class="font-body text-[16px] line-through text-[#4e4b47]">{paquete.precioAntes}</span>
+			)}
+			<span class="font-heading font-bold text-[28px] leading-[0.95] text-[#191505]">{paquete.precio}</span>
+		</div>
+		{paquete.descuento && (
+			<span class="bg-[#cc140d] flex h-6 items-center justify-center px-2.5 rounded-full text-[16px] text-white">{paquete.descuento}</span>
+		)}
+	</div>
+
+	{/* Campos: Fecha + Número de personas */}
+	<div class="flex flex-col gap-3.5 items-start w-full">
+		<label class="flex flex-col gap-2 items-start w-full">
+			<span class="font-action font-medium text-[14px] text-[#121110]/80">Fecha</span>
+			<div class="relative w-full flex items-center h-10 px-[18px] gap-3 rounded bg-[#f9f8f6] border border-[#b5b2aa] focus-within:border-[#f4b13b] transition-colors">
+				<svg class="shrink-0 pointer-events-none" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="m6 9 6 6 6-6" stroke="#827e78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+				<input type="date" data-field-fecha class="flex-1 min-w-0 bg-transparent text-[16px] text-[#121110] outline-none" />
+				<svg class="shrink-0 pointer-events-none" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="m6 9 6 6 6-6" stroke="#827e78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+			</div>
+		</label>
+		<label class="flex flex-col gap-2 items-start w-full">
+			<span class="font-action font-medium text-[14px] text-[#121110]/80">Número de personas</span>
+			<div class="relative w-full flex items-center h-10 px-[18px] gap-3 rounded bg-[#f9f8f6] border border-[#b5b2aa] focus-within:border-[#f4b13b] transition-colors">
+				<svg class="shrink-0 pointer-events-none" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="m6 9 6 6 6-6" stroke="#827e78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+				<select data-field-personas class="appearance-none flex-1 min-w-0 bg-transparent text-[16px] text-[#121110] outline-none cursor-pointer">
+					<option value="">Seleccionar</option>
+					<option value="1">1</option>
+					<option value="2">2</option>
+					<option value="3">3</option>
+					<option value="4">4</option>
+					<option value="5">5+</option>
+				</select>
+				<svg class="shrink-0 pointer-events-none" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="m6 9 6 6 6-6" stroke="#827e78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+			</div>
+		</label>
+	</div>
+
+	{/* Cantidad de reservas (contador) */}
+	<div class="flex gap-[84px] items-center pt-2 border-t border-[#d3d1c6] w-full">
+		<p class="font-action font-medium text-[14px] text-[#121110]/80 whitespace-nowrap">Cantidad de reservas:</p>
+		<div class="flex gap-[17px] items-center" data-qty>
+			<button type="button" data-qty-minus aria-label="Quitar" class="size-9 rounded-md bg-[#d3d1c6] hover:brightness-95 flex items-center justify-center cursor-pointer transition-all">
+				<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke="#121110" stroke-width="2" stroke-linecap="round"/></svg>
+			</button>
+			<span data-qty-value class="font-price font-semibold text-[16px] leading-[1.11] text-[#191505] min-w-4 text-center">2</span>
+			<button type="button" data-qty-plus aria-label="Agregar" class="size-9 rounded-md bg-[#d3d1c6] hover:brightness-95 flex items-center justify-center cursor-pointer transition-all">
+				<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#121110" stroke-width="2" stroke-linecap="round"/></svg>
+			</button>
+		</div>
+	</div>
+
+	{/* Botón "Añadir a mi viaje" */}
+	<button type="button" data-reserva-add class="bg-[#f4b13b] hover:brightness-105 transition-all flex gap-1.5 h-11 items-center justify-center px-6 rounded w-full cursor-pointer">
+		<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M6 7V5a3 3 0 013-3h6a3 3 0 013 3v2M4 7h16l-1 13a2 2 0 01-2 2H7a2 2 0 01-2-2L4 7z" stroke="#121110" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+		<span class="font-action font-medium text-[16px] text-[#121110]">Añadir a mi viaje ({paquete.precio})</span>
+	</button>
+</div>
+
+<script>
+	import { addToCart, toast } from '../scripts/cart.js';
+
+	document.querySelectorAll('[data-reserva-card]').forEach((card) => {
+		const el = card as HTMLElement;
+		const addBtn = el.querySelector('[data-reserva-add]');
+		const fechaInput = el.querySelector('[data-field-fecha]') as HTMLInputElement | null;
+		const personasSelect = el.querySelector('[data-field-personas]') as HTMLSelectElement | null;
+		const qtyValue = el.querySelector('[data-qty-value]');
+
+		addBtn?.addEventListener('click', () => {
+			const cantidad = parseInt(qtyValue?.textContent || '1', 10) || 1;
+			addToCart({
+				slug: el.dataset.slug,
+				nombre: el.dataset.nombre,
+				imagen: el.dataset.imagen,
+				precio: el.dataset.precio,
+				precioAntes: el.dataset.precioAntes || '',
+				descuento: el.dataset.descuento || '',
+				fecha: fechaInput?.value || '',
+				personas: personasSelect?.value || '',
+				cantidad,
+			});
+			toast('Añadido a tu maleta de viaje');
+		});
+	});
+</script>

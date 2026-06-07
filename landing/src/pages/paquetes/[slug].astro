@@ -1,0 +1,170 @@
+---
+// ============================================================
+//  Vista de detalle de un paquete (nodes 231:11221 + 253:6418)
+//  Ruta dinámica: /paquetes/<slug>
+//  Genera una página por cada paquete del array central.
+// ============================================================
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import ReservaCard from '../../components/ReservaCard.astro';
+import ContactForm from '../../components/ContactForm.astro';
+import Footer from '../../components/Footer.astro';
+import { paquetes } from '../../data/paquetes.js';
+
+export function getStaticPaths() {
+	return paquetes.map((paquete) => ({
+		params: { slug: paquete.slug },
+		props: { paquete },
+	}));
+}
+
+const { paquete } = Astro.props;
+const heroImg = paquete.galeria?.[0] ?? paquete.imagen;
+---
+
+<Layout title={`TPP PERÚ | ${paquete.nombre}`}>
+	<Navbar />
+
+	{/* ============================================================
+	     Detalle (nodes 231:11221 + 253:6418)
+	     Hero full-width arriba; debajo, 2 columnas (galería+tabs | card).
+	     La card es sticky: arranca sobre la imagen y baja con el scroll.
+	     ============================================================ */}
+
+	{/* Hero: foto grande a TODO el ancho */}
+	<section class="relative h-[420px] lg:h-[480px] w-full overflow-hidden">
+		<img src={heroImg} alt={paquete.nombre} data-hero-img class="absolute inset-0 w-full h-full object-cover" />
+		<div class="absolute inset-0 bg-black/15"></div>
+	</section>
+
+	{/* Cuerpo: 2 columnas. La card sube con margen negativo para solaparse
+	    sobre el hero, y queda sticky al hacer scroll. */}
+	<section class="relative bg-white flex flex-col lg:flex-row gap-[40px] lg:gap-[70px] lg:items-stretch px-8 lg:px-[100px] pb-[100px]">
+
+		{/* Columna izquierda: galería + tabs + contenido */}
+		<div class="flex flex-1 flex-col min-w-0 w-full pt-8">
+
+			{/* Galería de miniaturas con flechas */}
+			<div class="flex gap-[17px] h-[120px] items-center w-full">
+				<button type="button" data-gallery-prev aria-label="Anterior" class="opacity-50 hover:opacity-100 disabled:opacity-20 disabled:cursor-default transition-opacity shrink-0 text-[#191505] cursor-pointer">
+					<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+				</button>
+				<div data-gallery-track class="flex flex-1 gap-2 items-center h-full min-w-0 overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+					{paquete.galeria.map((img, i) => (
+						<button type="button" data-gallery-thumb class="relative h-full aspect-[223/149] rounded shrink-0 overflow-hidden cursor-pointer ring-2 ring-transparent data-[active]:ring-[#f4b13b] transition" data-active={i === 0 ? '' : undefined} data-img={img}>
+							<img src={img} alt={`Foto ${i + 1} de ${paquete.nombre}`} class="absolute inset-0 w-full h-full object-cover" />
+							<div class="absolute inset-0 bg-gradient-to-b from-[rgba(4,22,20,0.72)] via-transparent to-[rgba(4,22,20,0.3)] mix-blend-multiply"></div>
+						</button>
+					))}
+				</div>
+				<button type="button" data-gallery-next aria-label="Siguiente" class="opacity-50 hover:opacity-100 disabled:opacity-20 disabled:cursor-default transition-opacity shrink-0 text-[#191505] cursor-pointer">
+					<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+				</button>
+			</div>
+
+			{/* Tabs: Detalles / Itinerario / Notas */}
+			<div class="flex flex-col gap-8 w-full mt-8">
+				<div class="flex items-center border-b border-[#b5b2aa]" role="tablist">
+					<button type="button" data-tab="detalles" data-active class="w-[186px] max-w-[33%] flex items-center justify-center pt-2.5 pb-3.5 px-2 border-b-[3px] border-transparent data-[active]:border-[#f4b13b] font-heading font-bold text-[18px] leading-[0.95] text-[#4e4b47]/80 data-[active]:text-[#191505] transition-colors cursor-pointer">Detalles</button>
+					<button type="button" data-tab="itinerario" class="w-[186px] max-w-[33%] flex items-center justify-center pt-2.5 pb-3.5 px-2 border-b-[3px] border-transparent data-[active]:border-[#f4b13b] font-heading font-bold text-[18px] leading-[0.95] text-[#4e4b47]/80 data-[active]:text-[#191505] transition-colors cursor-pointer">Itinerario</button>
+					<button type="button" data-tab="notas" class="w-[186px] max-w-[33%] flex items-center justify-center pt-2.5 pb-3.5 px-2 border-b-[3px] border-transparent data-[active]:border-[#f4b13b] font-heading font-bold text-[18px] leading-[0.95] text-[#4e4b47]/80 data-[active]:text-[#191505] transition-colors cursor-pointer">Notas</button>
+				</div>
+
+				{/* Panel: Detalles */}
+				<div data-panel="detalles" class="flex flex-col gap-7 items-start px-2 lg:px-5">
+					<p class="font-heading font-bold text-[24px] leading-[0.95] text-[#121110]">¿Qué incluye en el paquete?</p>
+					<div class="flex flex-col gap-3 items-start w-full">
+						{paquete.incluye.map((item) => (
+							<div class="flex gap-3.5 items-start">
+								<span class="bg-[#5b6d12] flex items-center justify-center rounded-full shrink-0 size-5 mt-0.5">
+									<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+								</span>
+								<p class="font-body text-[16px] text-black">{item}</p>
+							</div>
+						))}
+					</div>
+				</div>
+
+				{/* Panel: Itinerario (próximamente) */}
+				<div data-panel="itinerario" hidden class="flex flex-col items-start px-2 lg:px-5">
+					<p class="font-body text-[16px] text-[#4e4b47]">El itinerario detallado estará disponible próximamente.</p>
+				</div>
+
+				{/* Panel: Notas (próximamente) */}
+				<div data-panel="notas" hidden class="flex flex-col items-start px-2 lg:px-5">
+					<p class="font-body text-[16px] text-[#4e4b47]">Las notas adicionales estarán disponibles próximamente.</p>
+				</div>
+			</div>
+		</div>
+
+		{/* Columna derecha: UNA card de reserva sticky.
+		    El flex-item se estira a la altura de la fila (items-stretch) para dar
+		    recorrido al sticky. El div interno sube con -mt para solaparse sobre
+		    el hero, y queda sticky top-[140px] acompañando el scroll. */}
+		<div class="shrink-0 w-full lg:w-[396px]">
+			<div class="lg:sticky lg:top-[140px] lg:-mt-[340px]">
+				<ReservaCard paquete={paquete} />
+			</div>
+		</div>
+	</section>
+
+	{/* Formulario de contacto + Footer reutilizables */}
+	<ContactForm />
+	<Footer />
+</Layout>
+
+{/* Interacciones: galería (miniatura activa + flechas) y tabs */}
+<script>
+	// ---- Galería: click en miniatura la marca activa + cambia el hero ----
+	document.querySelectorAll<HTMLElement>('[data-gallery-track]').forEach((track) => {
+		const thumbs = Array.from(track.querySelectorAll<HTMLElement>('[data-gallery-thumb]'));
+		const heroImg = document.querySelector<HTMLImageElement>('[data-hero-img]');
+		const prev = track.parentElement?.querySelector<HTMLButtonElement>('[data-gallery-prev]');
+		const next = track.parentElement?.querySelector<HTMLButtonElement>('[data-gallery-next]');
+
+		thumbs.forEach((thumb) => {
+			thumb.addEventListener('click', () => {
+				thumbs.forEach((t) => t.removeAttribute('data-active'));
+				thumb.setAttribute('data-active', '');
+				const img = thumb.getAttribute('data-img');
+				if (heroImg && img) heroImg.src = img;
+			});
+		});
+
+		const step = () => (thumbs[0]?.getBoundingClientRect().width ?? 200) + 8;
+		const update = () => {
+			const max = track.scrollWidth - track.clientWidth - 1;
+			if (prev) prev.disabled = track.scrollLeft <= 0;
+			if (next) next.disabled = track.scrollLeft >= max;
+		};
+		prev?.addEventListener('click', () => track.scrollBy({ left: -step() * 2, behavior: 'smooth' }));
+		next?.addEventListener('click', () => track.scrollBy({ left: step() * 2, behavior: 'smooth' }));
+		track.addEventListener('scroll', update, { passive: true });
+		window.addEventListener('resize', update);
+		update();
+	});
+
+	// ---- Tabs: cambia el panel activo ----
+	const tabs = Array.from(document.querySelectorAll<HTMLElement>('[data-tab]'));
+	const panels = Array.from(document.querySelectorAll<HTMLElement>('[data-panel]'));
+	tabs.forEach((tab) => {
+		tab.addEventListener('click', () => {
+			const key = tab.getAttribute('data-tab');
+			tabs.forEach((t) => t.removeAttribute('data-active'));
+			tab.setAttribute('data-active', '');
+			panels.forEach((p) => { p.hidden = p.getAttribute('data-panel') !== key; });
+		});
+	});
+
+	// ---- Contador de cantidad de reservas (en cada ReservaCard) ----
+	document.querySelectorAll<HTMLElement>('[data-qty]').forEach((qty) => {
+		const valueEl = qty.querySelector<HTMLElement>('[data-qty-value]');
+		const minus = qty.querySelector<HTMLButtonElement>('[data-qty-minus]');
+		const plus = qty.querySelector<HTMLButtonElement>('[data-qty-plus]');
+		let n = parseInt(valueEl?.textContent ?? '2', 10) || 1;
+		const render = () => { if (valueEl) valueEl.textContent = String(n); if (minus) minus.disabled = n <= 1; };
+		minus?.addEventListener('click', () => { if (n > 1) { n--; render(); } });
+		plus?.addEventListener('click', () => { n++; render(); });
+		render();
+	});
+</script>
