@@ -1,0 +1,266 @@
+---
+// ============================================================
+//  Carrito — "Mi maleta de viaje" (nodes 314:2116 + 316:2067)
+//  El contenido de los items se renderiza en cliente desde localStorage.
+//  "También te puede interesar" usa el array central de paquetes.
+// ============================================================
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import ContactForm from '../components/ContactForm.astro';
+import Footer from '../components/Footer.astro';
+import { paquetes, tagClase } from '../data/paquetes.js';
+---
+
+<Layout title="TPP PERÚ | Mi maleta de viaje">
+	<Navbar variant="light" />
+
+	{/* ============================================================
+	     Carrito: tabla de reservas + resumen (node 314:2116)
+	     ============================================================ */}
+	<section class="bg-[#e5e3da] flex flex-col lg:flex-row gap-8 items-start pt-[120px] pb-[80px] px-8 lg:px-[100px]">
+
+		{/* === Tabla "Mi maleta de viaje" === */}
+		<div class="bg-[#f3f2ed] flex-1 w-full flex flex-col gap-10 rounded-xl pt-7 px-6 pb-[88px] min-w-0">
+			{/* Header */}
+			<div class="flex items-center justify-between w-full">
+				<h1 class="font-heading font-bold text-[28px] leading-[0.95] text-[#191505]">Mi maleta de viaje</h1>
+				<p data-cart-resumen-count class="font-price font-semibold text-[16px] text-[#4e4b47]">0 reservas añadidas</p>
+			</div>
+
+			{/* Tabla */}
+			<div class="flex flex-col gap-3.5 w-full">
+				{/* Encabezado de columnas (solo desktop) */}
+				<div class="hidden lg:flex h-[47px] items-center bg-[#e5e3da] rounded-sm w-full">
+					<div class="flex-1 flex items-center justify-center"><span class="font-price font-semibold text-[14px] text-[#191505]">Reservas</span></div>
+					<div class="w-[156px] flex items-center px-3"><span class="font-price font-semibold text-[14px] text-[#191505]">Precio</span></div>
+					<div class="w-[142px] flex items-center justify-center"><span class="font-price font-semibold text-[14px] text-[#191505]">Cantidad</span></div>
+					<div class="w-[96px] flex items-center justify-center"><span class="font-price font-semibold text-[14px] text-[#191505]">Subtotal</span></div>
+					<div class="w-[79px]"></div>
+				</div>
+
+				{/* Filas (render en cliente) */}
+				<div data-cart-items class="flex flex-col gap-3.5 w-full"></div>
+
+				{/* Estado vacío */}
+				<div data-cart-empty hidden class="flex flex-col items-center justify-center gap-3 py-16 text-center">
+					<svg width="48" height="48" viewBox="0 0 24 24" fill="none"><path d="M6 7V5a3 3 0 013-3h6a3 3 0 013 3v2M4 7h16l-1 13a2 2 0 01-2 2H7a2 2 0 01-2-2L4 7z" stroke="#b5b2aa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+					<p class="font-heading font-bold text-[18px] text-[#191505]">Tu maleta está vacía</p>
+					<p class="font-body text-[16px] text-[#4e4b47]">Explora nuestros paquetes y añade tu próxima aventura.</p>
+					<a href="/" class="mt-2 bg-[#f4b13b] hover:brightness-105 transition-all font-action font-medium text-[16px] text-[#121110] px-6 h-11 flex items-center rounded">Ver paquetes</a>
+				</div>
+			</div>
+		</div>
+
+		{/* === Panel derecho: cupón + resumen === */}
+		<aside class="bg-[#f3f2ed] w-full lg:w-[388px] shrink-0 flex flex-col gap-9 rounded-xl pt-7 pb-6 px-6">
+			{/* Cupón promocional */}
+			<div class="flex flex-col gap-5 w-full">
+				<h2 class="font-heading font-bold text-[18px] leading-[0.95] text-[#191505]">Cupón promocional</h2>
+				<div class="flex gap-3 items-center w-full">
+					<input type="text" placeholder="Ingresa un cupón" class="flex-1 min-w-0 h-10 px-[18px] rounded bg-[#f9f8f6] border border-[#b5b2aa] text-[16px] text-[#121110] placeholder:text-[#b5b2aa] focus:border-[#f4b13b] outline-none transition-colors" />
+					<button type="button" class="shrink-0 h-10 px-6 rounded bg-[#f4b13b] hover:brightness-105 transition-all font-action font-medium text-[14px] text-[#121110] cursor-pointer">Aplicar</button>
+				</div>
+			</div>
+
+			{/* Resumen de compra */}
+			<div class="flex flex-col gap-5 w-full">
+				<h2 class="font-heading font-bold text-[18px] leading-[0.95] text-[#191505]">Resumen de compra</h2>
+				<div class="flex flex-col gap-3.5 w-full text-[16px]">
+					<div class="flex items-center justify-between w-full">
+						<span class="font-body text-[#4e4b47]">Reservas</span>
+						<span data-sum-reservas class="font-price font-semibold text-[#121110]">0</span>
+					</div>
+					<div class="flex items-center justify-between w-full">
+						<span class="font-body text-[#4e4b47]">Subtotal</span>
+						<span data-sum-subtotal class="font-price font-semibold text-[#121110]">S/ 0.00</span>
+					</div>
+					<div class="flex items-center justify-between w-full">
+						<span class="font-body text-[#4e4b47]">Descuentos</span>
+						<span data-sum-descuentos class="font-price font-semibold text-[#121110]">S/ 0.00</span>
+					</div>
+					<div class="flex items-center justify-between w-full">
+						<span class="font-body text-[#4e4b47]">Total</span>
+						<span data-sum-total class="font-price font-semibold text-[#121110]">S/ 0.00</span>
+					</div>
+				</div>
+			</div>
+
+			{/* Botones */}
+			<div class="flex flex-col gap-4 w-full">
+				<button type="button" class="bg-[#f4b13b] hover:brightness-105 transition-all h-11 flex items-center justify-center rounded font-action font-medium text-[16px] text-[#121110] w-full cursor-pointer">Continuar con el pago</button>
+				<a href="/" class="bg-[#d3d1c6] hover:brightness-95 transition-all h-11 flex items-center justify-center rounded font-action font-medium text-[16px] text-[#262522] w-full">Seguir explorando</a>
+			</div>
+		</aside>
+	</section>
+
+	{/* ============================================================
+	     También te puede interesar — carrusel de paquetes (node 316:2067)
+	     ============================================================ */}
+	<section class="bg-[#e5e3da] pb-[100px] px-8 lg:px-[100px]">
+		<h2 class="font-heading font-bold text-[28px] leading-[0.95] text-[#191505] mb-8">También te puede interesar</h2>
+		<div class="flex gap-3.5 items-center w-full">
+			<button type="button" data-rec-prev aria-label="Anterior" class="opacity-50 hover:opacity-100 disabled:opacity-20 transition-opacity shrink-0 text-[#191505] cursor-pointer">
+				<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+			</button>
+			<div data-rec-track class="flex flex-1 gap-6 items-stretch min-w-0 overflow-x-auto px-3 py-5 -mx-3 -my-5 scroll-smooth snap-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+				{paquetes.map((p) => (
+					<a href={`/paquetes/${p.slug}`} data-card data-slug={p.slug} data-nombre={p.nombre} data-imagen={p.imagen} data-precio={p.precio} data-precio-antes={p.precioAntes} data-descuento={p.descuento} class="group bg-white shadow-[0_6px_20px_-2px_rgba(34,32,30,0.18)] hover:shadow-[0_12px_28px_-4px_rgba(34,32,30,0.25)] transition-shadow flex flex-col gap-3.5 pb-2.5 pt-1.5 px-1.5 rounded-lg shrink-0 w-[248px] snap-start cursor-pointer">
+						<div class="relative flex flex-col gap-2 h-[194px] items-center justify-end py-3.5 rounded-md overflow-hidden">
+							<img src={p.imagen} alt={p.nombre} class="absolute inset-0 w-full h-full object-cover rounded-md group-hover:scale-105 transition-transform duration-300" />
+							<div class="absolute inset-0 rounded-md bg-gradient-to-b from-[rgba(4,22,20,0.72)] via-transparent to-[rgba(4,22,20,0.3)] mix-blend-multiply"></div>
+							<span class={`absolute top-[23px] left-0 px-3 py-1 text-[13px] font-body font-semibold uppercase ${tagClase(p.tag)}`} style="clip-path: polygon(0 0, 100% 0, 90% 100%, 0 100%);">{p.tag}</span>
+							<div class="relative z-10 flex gap-1 text-[#F4B13B] text-[8px]">★★★★★</div>
+						</div>
+						<div class="flex flex-col px-1">
+							<h3 class="font-heading font-semibold text-[16px] leading-[1.11] text-[#191505] text-center">{p.nombre}</h3>
+							<div class="flex flex-col gap-[17px] pt-2.5">
+								<div class="flex gap-2.5 items-end">
+									<div class="flex flex-col text-center">
+										<span class="font-price text-[12px] leading-[0.95] line-through opacity-70 text-[#121110]">{p.precioAntes}</span>
+										<span class="font-price font-bold text-[18px] leading-[1.2] text-[#191505]">{p.precio}</span>
+									</div>
+									{p.descuento && (
+										<span class="bg-[#cc140d] flex items-center justify-center px-2.5 py-1 rounded-full text-[12px] font-heading font-semibold text-white">{p.descuento}</span>
+									)}
+								</div>
+								<button type="button" data-add-to-trip class="bg-[#d3d1c6] hover:brightness-95 transition-all flex gap-1.5 h-10 items-center justify-center px-6 rounded w-full cursor-pointer">
+									<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2v16M2 10h16" stroke="#262522" stroke-width="2" stroke-linecap="round"/></svg>
+									<span class="font-action font-medium text-[14px] text-[#262522]">Añadir a mi viaje</span>
+								</button>
+							</div>
+						</div>
+					</a>
+				))}
+			</div>
+			<button type="button" data-rec-next aria-label="Siguiente" class="opacity-50 hover:opacity-100 disabled:opacity-20 transition-opacity shrink-0 text-[#191505] cursor-pointer">
+				<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+			</button>
+		</div>
+	</section>
+
+	<ContactForm />
+	<Footer />
+</Layout>
+
+<script>
+	import { getCart, setQuantity, removeFromCart, cartCount, parsePrice, formatPrice, addToCart, toast } from '../scripts/cart.js';
+
+	const itemsEl = document.querySelector('[data-cart-items]');
+	const emptyEl = document.querySelector('[data-cart-empty]') as HTMLElement | null;
+	const headerCount = document.querySelector('[data-cart-resumen-count]');
+
+	// --- Plantilla de una fila del carrito ---
+	function rowHTML(it, i) {
+		const precio = it.precio || '';
+		const precioAntes = it.precioAntes || '';
+		const descuento = it.descuento || '';
+		const cantidad = it.cantidad || 1;
+		const subtotal = formatPrice(parsePrice(precio) * cantidad);
+		const subtotalAntes = precioAntes ? formatPrice(parsePrice(precioAntes) * cantidad) : '';
+		const fecha = it.fecha ? new Date(it.fecha + 'T00:00:00').toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Fecha por definir';
+		const personas = it.personas ? `${it.personas} personas` : 'Sin definir';
+		return `
+		<div class="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-0 w-full border-b border-[#e5e3da] pb-4 lg:pb-0 lg:border-0" data-row="${i}">
+			<div class="flex flex-1 gap-3.5 items-center min-w-0 pl-2">
+				<span class="bg-[#f4b13b] flex items-center justify-center rounded shrink-0 size-5">
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+				</span>
+				<div class="relative h-16 w-[59px] rounded shrink-0 overflow-hidden">
+					<img src="${it.imagen || ''}" alt="${it.nombre || ''}" class="absolute inset-0 w-full h-full object-cover" />
+					<div class="absolute inset-0 bg-gradient-to-b from-[rgba(4,22,20,0.72)] to-[rgba(4,22,20,0.3)] mix-blend-multiply"></div>
+				</div>
+				<div class="flex flex-1 flex-col gap-1.5 min-w-0">
+					<p class="font-price font-semibold text-[14px] leading-[1.11] text-[#191505]">${it.nombre || ''}</p>
+					<div class="flex gap-[23px] items-center text-[12px] text-[#4e4b47]">
+						<span class="flex gap-1.5 items-center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#4e4b47" stroke-width="2"/><path d="M3 9h18M8 2v4M16 2v4" stroke="#4e4b47" stroke-width="2" stroke-linecap="round"/></svg>${fecha}</span>
+						<span class="flex gap-1.5 items-center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="3" stroke="#4e4b47" stroke-width="2"/><path d="M3 20v-1a5 5 0 015-5h2a5 5 0 015 5v1" stroke="#4e4b47" stroke-width="2" stroke-linecap="round"/></svg>${personas}</span>
+					</div>
+				</div>
+			</div>
+			<div class="flex lg:w-[156px] items-center lg:justify-center lg:px-3 gap-2">
+				<div class="flex flex-col">
+					${precioAntes ? `<span class="font-price text-[12px] leading-[0.95] line-through opacity-70 text-[#121110]">${precioAntes}</span>` : ''}
+					<span class="font-price font-semibold text-[14px] text-[#191505]">${precio}</span>
+				</div>
+				${descuento ? `<span class="bg-[#cc140d] flex h-5 items-center justify-center px-2.5 rounded-full text-[12px] font-price font-semibold text-white">${descuento}</span>` : ''}
+			</div>
+			<div class="flex lg:w-[142px] items-center lg:justify-center gap-4">
+				<button type="button" data-row-minus class="size-[30px] rounded-md bg-[#d3d1c6] hover:brightness-95 flex items-center justify-center cursor-pointer transition-all"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke="#121110" stroke-width="2" stroke-linecap="round"/></svg></button>
+				<span class="font-price font-semibold text-[16px] text-[#191505] min-w-4 text-center">${cantidad}</span>
+				<button type="button" data-row-plus class="size-[30px] rounded-md bg-[#d3d1c6] hover:brightness-95 flex items-center justify-center cursor-pointer transition-all"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#121110" stroke-width="2" stroke-linecap="round"/></svg></button>
+			</div>
+			<div class="flex lg:w-[96px] flex-col items-start lg:items-center lg:justify-center lg:px-3">
+				${subtotalAntes ? `<span class="font-price text-[12px] leading-[0.95] line-through opacity-70 text-[#121110]">${subtotalAntes}</span>` : ''}
+				<span class="font-price font-semibold text-[14px] text-[#191505]">${subtotal}</span>
+			</div>
+			<div class="flex lg:w-[79px] gap-4 items-center lg:justify-center px-3">
+				<button type="button" data-row-edit aria-label="Editar" class="text-[#4e4b47] hover:text-[#191505] cursor-pointer transition-colors"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+				<button type="button" data-row-remove aria-label="Eliminar" class="text-[#4e4b47] hover:text-[#cc140d] cursor-pointer transition-colors"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+			</div>
+		</div>`;
+	}
+
+	function render() {
+		const items = getCart();
+		const count = cartCount(items);
+
+		if (headerCount) headerCount.textContent = `${items.length} reserva${items.length === 1 ? '' : 's'} añadida${items.length === 1 ? '' : 's'}`;
+
+		if (items.length === 0) {
+			if (itemsEl) itemsEl.innerHTML = '';
+			if (emptyEl) emptyEl.hidden = false;
+		} else {
+			if (emptyEl) emptyEl.hidden = true;
+			if (itemsEl) itemsEl.innerHTML = items.map((it, i) => rowHTML(it, i)).join('');
+		}
+
+		// Resumen
+		let subtotal = 0, subtotalAntes = 0;
+		items.forEach((it) => {
+			const c = it.cantidad || 1;
+			subtotal += parsePrice(it.precio) * c;
+			subtotalAntes += parsePrice(it.precioAntes || it.precio) * c;
+		});
+		const descuentos = Math.max(0, subtotalAntes - subtotal);
+		document.querySelector('[data-sum-reservas]')!.textContent = String(count);
+		document.querySelector('[data-sum-subtotal]')!.textContent = formatPrice(subtotalAntes);
+		document.querySelector('[data-sum-descuentos]')!.textContent = '- ' + formatPrice(descuentos);
+		document.querySelector('[data-sum-total]')!.textContent = formatPrice(subtotal);
+	}
+
+	// Delegación de eventos en las filas
+	itemsEl?.addEventListener('click', (e) => {
+		const target = e.target as HTMLElement;
+		const row = target.closest('[data-row]') as HTMLElement | null;
+		if (!row) return;
+		const i = parseInt(row.dataset.row || '0', 10);
+		const items = getCart();
+		if (target.closest('[data-row-plus]')) setQuantity(i, (items[i]?.cantidad || 1) + 1);
+		else if (target.closest('[data-row-minus]')) setQuantity(i, (items[i]?.cantidad || 1) - 1);
+		else if (target.closest('[data-row-remove]')) removeFromCart(i);
+		else if (target.closest('[data-row-edit]')) { window.location.href = `/paquetes/${items[i]?.slug}`; }
+	});
+
+	document.addEventListener('cart:change', render);
+	render();
+
+	// "Añadir a mi viaje" en las cards de "También te puede interesar"
+	document.addEventListener('click', (e) => {
+		const btn = (e.target as HTMLElement)?.closest('[data-add-to-trip]');
+		if (btn) {
+			e.preventDefault();
+			e.stopPropagation();
+			const card = (btn as HTMLElement).closest('[data-card]') as HTMLElement | null;
+			if (card) {
+				addToCart({ slug: card.dataset.slug, nombre: card.dataset.nombre, imagen: card.dataset.imagen, precio: card.dataset.precio, precioAntes: card.dataset.precioAntes || '', descuento: card.dataset.descuento || '', fecha: '', personas: '', cantidad: 1 });
+				toast('Añadido a tu maleta de viaje');
+			}
+		}
+	});
+
+	// Carrusel de recomendados
+	const recTrack = document.querySelector('[data-rec-track]') as HTMLElement | null;
+	const recStep = () => 248 + 24;
+	document.querySelector('[data-rec-prev]')?.addEventListener('click', () => recTrack?.scrollBy({ left: -recStep(), behavior: 'smooth' }));
+	document.querySelector('[data-rec-next]')?.addEventListener('click', () => recTrack?.scrollBy({ left: recStep(), behavior: 'smooth' }));
+</script>

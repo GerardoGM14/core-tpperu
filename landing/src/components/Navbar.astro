@@ -2,52 +2,89 @@
 import { Image } from 'astro:assets';
 import logo from '../assets/logo.png';
 import suitcaseIcon from '../icons/icon-case.svg';
+
+// ============================================================
+//  Navbar — dos variantes:
+//    'dark'  (default): sobre fondos oscuros (home, detalle). Tiene topbar
+//      amarillo, logo blanco, texto blanco, transparente → oscuro al scroll.
+//    'light' (node 205:1693): sobre fondos claros (carrito). Fondo #f3f2ed
+//      sólido, sin topbar, logo amarillo, texto oscuro. (Sin efecto scroll.)
+// ============================================================
+interface Props {
+	variant?: 'dark' | 'light';
+}
+const { variant = 'dark' } = Astro.props;
+const isLight = variant === 'light';
+
+// Clases dependientes de la variante
+const linkColor = isLight ? 'text-[#121110]' : 'text-white';
+const badgeBorder = isLight ? '' : '';
 ---
 
 <header class="fixed top-0 left-0 w-full z-50">
-  {/* Top bar - Reducido en el eje Y */}
-  <div class="bg-[#F4B13B] text-[#121110] py-1 px-4 text-center text-sm font-medium">
-    Tours, paquetes y experiencias listas para que solo te preocupes por disfrutar.
-  </div>
+  {/* Top bar amarillo — solo en variante oscura */}
+  {!isLight && (
+    <div class="bg-[#F4B13B] text-[#121110] py-1 px-4 text-center text-sm font-medium">
+      Tours, paquetes y experiencias listas para que solo te preocupes por disfrutar.
+    </div>
+  )}
 
-  {/* Main Navbar - Centrado y dinámico al scroll */}
-  <nav id="main-nav" class="px-12 py-4 flex items-center justify-between transition-all duration-500 bg-transparent border-b border-transparent">
+  {/* Main Navbar */}
+  <nav
+    id="main-nav"
+    class:list={[
+      "px-12 flex items-center justify-between transition-all duration-500 border-b",
+      isLight
+        ? "bg-[#f3f2ed] border-[#e5e3da] py-3"
+        : "py-4 bg-transparent border-transparent",
+    ]}
+    data-nav-variant={variant}
+  >
     {/* Izquierda: Logo */}
     <div class="flex-1 flex justify-start">
       <a href="/" class="flex items-center">
-        <Image src={logo} alt="TPP PERÚ" class="h-16 w-auto object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.45)]" />
+        {isLight ? (
+          // Logo teñido de amarillo con máscara CSS (sin imagen extra)
+          <span
+            aria-label="TPP PERÚ"
+            class="block h-16 w-[120px] bg-[#f4b13b]"
+            style={`mask: url(${logo.src}) left center / contain no-repeat; -webkit-mask: url(${logo.src}) left center / contain no-repeat;`}
+          ></span>
+        ) : (
+          <Image src={logo} alt="TPP PERÚ" class="h-16 w-auto object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.45)]" />
+        )}
       </a>
     </div>
 
     {/* Centro: Menú */}
     <div class="flex-none px-4">
-      <ul class="hidden md:flex items-center gap-14 text-[17px] font-normal tracking-wide text-white">
+      <ul class:list={["hidden md:flex items-center gap-14 text-[17px] font-normal tracking-wide", linkColor]}>
         <li><a href="/nosotros" class="hover:text-[#F4B13B] transition-colors">Nosotros</a></li>
-        <li><a href="#tours" class="hover:text-[#F4B13B] transition-colors">Tours</a></li>
+        <li><a href="/#tours" class="hover:text-[#F4B13B] transition-colors">Tours</a></li>
         <li class="relative group">
-          <a href="#paquetes" class="flex items-center gap-1 hover:text-[#F4B13B] transition-colors">
+          <a href="/#paquetes" class="flex items-center gap-1 hover:text-[#F4B13B] transition-colors">
             Paquetes
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:rotate-180"><path d="m6 9 6 6 6-6"/></svg>
           </a>
         </li>
         <li>
-          <a href="#ofertas" class="flex items-center gap-1 hover:text-[#F4B13B] transition-colors">
+          <a href="/#ofertas" class="flex items-center gap-1 hover:text-[#F4B13B] transition-colors">
             Ofertas 🔥
           </a>
         </li>
-        <li><a href="#politicas" class="hover:text-[#F4B13B] transition-colors">Políticas</a></li>
+        <li><a href="/#politicas" class="hover:text-[#F4B13B] transition-colors">Políticas</a></li>
       </ul>
     </div>
 
     {/* Derecha: Acciones */}
     <div class="flex-1 flex items-center justify-end gap-10">
-      <div class="relative cursor-pointer">
-        <img src={suitcaseIcon.src} alt="Suitcase" class="h-8 w-auto" />
-        <span class="absolute -top-1 -right-2 bg-[#F4B13B] text-[#121110] text-[10px] font-black w-4.5 h-4.5 flex items-center justify-center rounded-full">0</span>
-      </div>
-      
-      {/* Botón Contáctanos con font-medium (500) */}
-      <a href="#contactanos" class="bg-[#F4B13B] text-[#121110] px-8 py-2 rounded-md font-medium text-[16px] hover:brightness-105 transition-all">
+      <a href="/carrito" aria-label="Mi maleta de viaje" class="relative cursor-pointer">
+        <img src={suitcaseIcon.src} alt="Maleta de viaje" class:list={["h-8 w-auto", isLight ? "brightness-0" : ""]} />
+        <span data-cart-badge class="absolute -top-1 -right-2 bg-[#F4B13B] text-[#121110] text-[10px] font-black w-4.5 h-4.5 flex items-center justify-center rounded-full opacity-0 transition-opacity">0</span>
+      </a>
+
+      {/* Botón Contáctanos */}
+      <a href="/#contactanos" class="bg-[#F4B13B] text-[#121110] px-8 py-2 rounded-md font-medium text-[16px] hover:brightness-105 transition-all">
         Contáctanos
       </a>
     </div>
@@ -55,15 +92,23 @@ import suitcaseIcon from '../icons/icon-case.svg';
 </header>
 
 <script>
+  import { initCart } from '../scripts/cart.js';
+
   const nav = document.getElementById('main-nav');
-  
-  window.addEventListener('scroll', () => {
-    if (window.scrollY > 20) {
-      nav?.classList.add('bg-black/40', 'backdrop-blur-md', 'border-white/10', 'py-3');
-      nav?.classList.remove('bg-transparent', 'border-transparent', 'py-4');
-    } else {
-      nav?.classList.remove('bg-black/40', 'backdrop-blur-md', 'border-white/10', 'py-3');
-      nav?.classList.add('bg-transparent', 'border-transparent', 'py-4');
-    }
-  });
+
+  // Efecto scroll solo en variante oscura (la clara ya tiene fondo sólido)
+  if (nav?.dataset.navVariant !== 'light') {
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 20) {
+        nav?.classList.add('bg-black/40', 'backdrop-blur-md', 'border-white/10', 'py-3');
+        nav?.classList.remove('bg-transparent', 'border-transparent', 'py-4');
+      } else {
+        nav?.classList.remove('bg-black/40', 'backdrop-blur-md', 'border-white/10', 'py-3');
+        nav?.classList.add('bg-transparent', 'border-transparent', 'py-4');
+      }
+    });
+  }
+
+  // Sincroniza el badge de la maletita en todas las páginas
+  initCart();
 </script>
