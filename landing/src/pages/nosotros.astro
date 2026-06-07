@@ -1,12 +1,36 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Navbar from '../components/Navbar.astro';
+import ContactForm from '../components/ContactForm.astro';
+import Footer from '../components/Footer.astro';
 import { Image } from 'astro:assets';
 import nosotrosEquipo from '../assets/nosotros-equipo.png';
 import holaBg from '../assets/hola-bg.png';
 import holaLetrero from '../assets/hola-letrero.png';
 import holaBuses from '../assets/hola-equipo2.png';
 import holaBus from '../assets/hola-bus.png';
+import equipoCard from '../assets/equipo-card.png';
+import trazoEquipo from '../icons/trazo-equipo.svg';
+
+// ============================================================
+//  Sección "Detrás de cada viaje" — equipo de TPP Perú (node 330:5190)
+//  EDITA AQUÍ cada miembro. La foto se reemplaza por un import de
+//  ../assets/ cuando tengas las fotos reales de cada persona.
+// ============================================================
+const equipo = [
+	{ nombre: 'KENNET FALCON - GERENTE GENERAL',     foto: equipoCard },
+	{ nombre: 'FLOR JARA - GESTORA DE RESERVAS',      foto: equipoCard },
+	{ nombre: 'MANUELA JARA - ASESORA DE RESERVAS',   foto: equipoCard },
+	{ nombre: 'KENNET FALCON - GERENTE GENERAL',     foto: equipoCard },
+	{ nombre: 'FLOR JARA - GESTORA DE RESERVAS',      foto: equipoCard },
+	{ nombre: 'MANUELA JARA - ASESORA DE RESERVAS',   foto: equipoCard },
+	{ nombre: 'KENNET FALCON - GERENTE GENERAL',     foto: equipoCard },
+	{ nombre: 'FLOR JARA - GESTORA DE RESERVAS',      foto: equipoCard },
+	{ nombre: 'MANUELA JARA - ASESORA DE RESERVAS',   foto: equipoCard },
+	{ nombre: 'KENNET FALCON - GERENTE GENERAL',     foto: equipoCard },
+	{ nombre: 'FLOR JARA - GESTORA DE RESERVAS',      foto: equipoCard },
+	{ nombre: 'MANUELA JARA - ASESORA DE RESERVAS',   foto: equipoCard },
+];
 ---
 
 <Layout title="TPP PERÚ | Nosotros">
@@ -88,4 +112,48 @@ import holaBus from '../assets/hola-bus.png';
 			</p>
 		</div>
 	</section>
+
+	{/* ============================================================
+	     Detrás de cada viaje — equipo de TPP Perú (node 330:5190)
+	     ============================================================ */}
+	<section class="bg-[#e5e3da] flex flex-col gap-[60px] items-center pt-[100px] pb-[120px] px-8">
+		{/* Header: título decorativo + título + badge sobre trazo de pincel */}
+		<div class="flex flex-col items-center w-[432px] max-w-full">
+			<div class="flex flex-col items-center text-center leading-[0.95]">
+				<p class="font-decoration text-[48px] text-[#bc8029] -mb-[3px]">Detrás de cada viaje</p>
+				<p class="font-heading font-bold text-[36px] text-[#191505]">Conoce al equipo de TTP Perú Tarapoto</p>
+			</div>
+			{/* Badge "#EquipoTTP" sobre trazo de pincel dorado, ligeramente rotado */}
+			<div class="relative mt-2 rotate-[0.38deg]">
+				<img src={trazoEquipo.src} alt="" aria-hidden="true" class="block w-[159px] h-[51px] rotate-[1.58deg]" />
+				<p class="absolute inset-0 flex items-center justify-center -rotate-[1.75deg] font-action font-medium text-[20px] text-[#121110]">#EquipoTTP</p>
+			</div>
+		</div>
+
+		{/* Grilla 3 columnas de tarjetas de equipo */}
+		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[19px] w-full max-w-[1146px] px-0 lg:px-[27px]">
+			{equipo.map((m) => (
+				<article class="bg-[#f3f2ed] flex flex-col gap-3.5 items-center pt-1.5 pb-3.5 px-1.5 rounded-lg drop-shadow-[0_1px_3.75px_rgba(34,32,30,0.08)]">
+					{/* Foto (proporción 312/393) */}
+					<div class="w-full aspect-[312/393] rounded-md overflow-hidden">
+						<Image src={m.foto} alt={m.nombre} class="w-full h-full object-cover" />
+					</div>
+					{/* Nombre + cargo */}
+					<div class="flex flex-col items-center justify-center px-1.5 w-full">
+						<p class="font-heading font-bold text-[18px] leading-[0.95] text-[#191505] text-center">{m.nombre}</p>
+					</div>
+				</article>
+			))}
+		</div>
+	</section>
+
+	{/* ============================================================
+	     ¿Prefieres que te ayudemos a elegir? — componente reutilizable
+	     ============================================================ */}
+	<ContactForm />
+
+	{/* ============================================================
+	     Banner verde + Footer — componente reutilizable
+	     ============================================================ */}
+	<Footer />
 </Layout>
