@@ -3,6 +3,7 @@
  * Ejecutar: npx prisma db seed
  */
 import { PrismaClient } from '@prisma/client';
+import * as argon2 from 'argon2';
 
 const prisma = new PrismaClient();
 
@@ -15,9 +16,17 @@ const daysAgo = (d: number, h = 0, m = 0) => {
 
 async function main() {
   // ---------- Usuario admin ----------
-  await prisma.user.updateMany({
-    where: { email: 'gerardo.gonzalez@sertech.pe' },
-    data: { role: 'ADMIN', fullName: 'Gerardo González' },
+  // Crea (o actualiza) el admin por defecto. Idempotente.
+  const adminPasswordHash = await argon2.hash('admin123!');
+  await prisma.user.upsert({
+    where: { email: 'admin@tpperu.com' },
+    update: { role: 'ADMIN', fullName: 'Administrador TPP' },
+    create: {
+      email: 'admin@tpperu.com',
+      passwordHash: adminPasswordHash,
+      fullName: 'Administrador TPP',
+      role: 'ADMIN',
+    },
   });
 
   // ---------- Paquetes ----------
