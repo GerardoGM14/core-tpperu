@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards, Injectable, NotFoundException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsArray, IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { PackageStatus } from '@prisma/client';
 import { PrismaService } from '../shared/prisma.service';
 
@@ -9,12 +9,19 @@ class CreatePackageDto {
   @IsString() code: string;
   @IsString() name: string;
   @IsString() destination: string;
+  @IsOptional() @IsString() slug?: string;
+  @IsOptional() @IsString() category?: string;
   @IsOptional() @IsString() description?: string;
   @IsInt() @Min(1) durationDays: number;
   @IsInt() @Min(0) durationNights: number;
   @IsInt() @Min(0) priceCents: number;
+  @IsOptional() @IsInt() @Min(0) priceBeforeCents?: number;
+  @IsOptional() @IsString() discountLabel?: string;
+  @IsOptional() @IsString() tag?: string;
   @IsOptional() @IsString() currency?: string;
   @IsOptional() @IsString() imageUrl?: string;
+  @IsOptional() @IsArray() @IsString({ each: true }) gallery?: string[];
+  @IsOptional() @IsArray() @IsString({ each: true }) includes?: string[];
   @IsOptional() @IsEnum(PackageStatus) status?: PackageStatus;
 }
 class UpdatePackageDto extends CreatePackageDto {}
