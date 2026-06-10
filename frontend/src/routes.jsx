@@ -1,7 +1,8 @@
 import Dashboard from './features/dashboard/Dashboard';
 import { Ventas } from './features/ventas/Ventas';
 import Clientes from './features/clientes/Clientes';
-import { Conversations, Plantillas } from './features/conversations/Conversations';
+import { Conversations } from './features/conversations/Conversations';
+import { Plantillas } from './features/plantillas/Plantillas';
 import FlowBuilder from './features/flows/FlowBuilder';
 import { LandingEditor, Reportes } from './features/landing/LandingEditor';
 import Catalogo from './features/catalogo/Catalogo';

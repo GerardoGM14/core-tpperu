@@ -2,7 +2,16 @@ import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Ico from '../../components/icons';
 import { conversationsApi, fileToBase64 } from '../../api/conversations';
+import { templatesApi } from '../../api/templates';
 import { getConversationsSocket } from '../../api/socket';
+
+// Rellena las variables {nombre} de una plantilla con datos del contacto.
+function fillTemplate(body, conversation) {
+  const name = conversation?.customer?.fullName || conversation?.displayName || '';
+  const firstName = name.split(' ')[0] || '';
+  const map = { nombre: firstName || name, cliente: name };
+  return body.replace(/\{(\w+)\}/g, (_, k) => map[k] ?? `{${k}}`);
+}
 
 // Render del contenido multimedia de un mensaje según su tipo.
 function MessageMedia({ m }) {
@@ -98,8 +107,17 @@ export function Conversations() {
   const [draft, setDraft] = React.useState('');
   const [search, setSearch] = React.useState('');
   const [attachment, setAttachment] = React.useState(null); // { file, previewUrl }
+  const [showTemplates, setShowTemplates] = React.useState(false);
   const scrollRef = React.useRef(null);
   const fileInputRef = React.useRef(null);
+
+  // Plantillas aprobadas para respuestas rápidas
+  const { data: allTemplates = [] } = useQuery({
+    queryKey: ['templates'],
+    queryFn: templatesApi.list,
+    staleTime: 60000,
+  });
+  const quickTemplates = allTemplates.filter((t) => t.status === 'APPROVED');
 
   const { data: convos = [], isLoading } = useQuery({
     queryKey: ['conversations'],
@@ -353,7 +371,7 @@ export function Conversations() {
                     }}><Ico.x /></button>
                   </div>
                 )}
-                <div className="row" style={{ gap: 8, alignItems: 'flex-end' }}>
+                <div className="row" style={{ gap: 8, alignItems: 'flex-end', position: 'relative' }}>
                   <input ref={fileInputRef} type="file" hidden onChange={onPickFile}
                     accept="image/*,video/*,audio/*,application/pdf" />
                   <button className="iconbtn" data-handled="1" title="Adjuntar archivo"
@@ -361,6 +379,37 @@ export function Conversations() {
                     onClick={() => fileInputRef.current?.click()}>
                     <Ico.plus />
                   </button>
+
+                  {/* Plantillas rápidas */}
+                  <button className="iconbtn" data-handled="1" title="Insertar plantilla"
+                    style={{ height: 36, width: 36 }}
+                    onClick={() => setShowTemplates((s) => !s)}>
+                    <Ico.bolt />
+                  </button>
+                  {showTemplates && (
+                    <div style={{
+                      position: 'absolute', bottom: 44, left: 0, zIndex: 50, width: 320,
+                      background: 'var(--surface)', border: '1px solid var(--hair-2)', borderRadius: 8,
+                      boxShadow: '0 8px 30px rgba(0,0,0,0.18)', maxHeight: 280, overflow: 'auto',
+                    }}>
+                      <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--hair)', fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        Respuestas rápidas
+                      </div>
+                      {quickTemplates.length === 0 && (
+                        <div style={{ padding: 14, fontSize: 12, color: 'var(--muted)' }}>No hay plantillas aprobadas. Créalas en Plantillas.</div>
+                      )}
+                      {quickTemplates.map((t) => (
+                        <div key={t.id}
+                          onClick={() => { setDraft((d) => (d ? d + '\n' : '') + fillTemplate(t.body, active)); setShowTemplates(false); }}
+                          style={{ padding: '10px 12px', borderBottom: '1px solid var(--hair)', cursor: 'pointer' }}
+                          onMouseEnter={(e) => e.currentTarget.style.background = 'var(--paper)'}
+                          onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                          <div style={{ fontSize: 12, fontWeight: 500 }}>{t.name}</div>
+                          <div style={{ fontSize: 11, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fillTemplate(t.body, active)}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <textarea
                     className="input"
                     placeholder={attachment ? 'Añade un comentario (opcional)…' : 'Escribe un mensaje... (Enter para enviar)'}
@@ -427,77 +476,6 @@ export function Conversations() {
               )}
             </>
           )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const TEMPLATES = [
-  { id: 'TPL-01', name: 'WSP_RECUP_CARRITO_v3', cat: 'Marketing', status: 'aprobada',  body: 'Hola {{1}} 🌿 Veo que dejaste *{{2}}* en tu maleta de viaje. ¿Te ayudo a finalizar la reserva?', uses: 412 },
-  { id: 'TPL-02', name: 'WSP_CONFIRM_RESERVA',  cat: 'Utilidad',  status: 'aprobada',  body: 'Tu reserva *{{1}}* fue confirmada ✅\n📍 {{2}}\n👥 {{3}} personas\n📅 {{4}}\n💰 S/ {{5}}', uses: 287 },
-  { id: 'TPL-03', name: 'WSP_PROMO_CYBER_v1',   cat: 'Marketing', status: 'aprobada',  body: 'CYBER TPP 🔥 Hasta 45% OFF en paquetes a Tarapoto. Reserva con S/ {{1}} de descuento usando *{{2}}*.', uses: 1230 },
-  { id: 'TPL-04', name: 'WSP_RECORDATORIO_24H', cat: 'Utilidad',  status: 'aprobada',  body: 'Hola {{1}}, te recordamos que tu tour *{{2}}* sale mañana a las {{3}}. Te recogemos en {{4}}.', uses: 156 },
-  { id: 'TPL-05', name: 'WSP_BIENVENIDA_v2',    cat: 'Utilidad',  status: 'pendiente', body: 'Hola {{1}}! Bienvenido a TPP Perú 🇵🇪 ¿Te gustaría conocer nuestros paquetes destacados?', uses: 0 },
-  { id: 'TPL-06', name: 'WSP_ENCUESTA_NPS',     cat: 'Utilidad',  status: 'rechazada', body: 'Hola {{1}}, ¿cómo calificarías tu experiencia con TPP? Responde 1-10.', uses: 0 },
-];
-
-export function Plantillas() {
-  const [sel, setSel] = React.useState(TEMPLATES[0].id);
-  const t = TEMPLATES.find(x => x.id === sel);
-
-  return (
-    <div className="view">
-      <div className="row between">
-        <div>
-          <h1 className="h1">Plantillas WhatsApp</h1>
-          <p className="lead" style={{ marginTop: 4 }}>Mensajes aprobados por Meta listos para usarse en flujos y respuestas manuales.</p>
-        </div>
-        <button className="btn"><Ico.plus />Nueva plantilla</button>
-      </div>
-      <div className="spacer-m" />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 12 }}>
-        <div className="card">
-          <div className="card-b flush">
-            <table className="t">
-              <thead><tr><th>Nombre</th><th>Categoría</th><th>Estado</th><th style={{ textAlign: 'right' }}>Usos</th><th></th></tr></thead>
-              <tbody>
-                {TEMPLATES.map(p => (
-                  <tr key={p.id} className={sel === p.id ? 'selected' : ''} onClick={() => setSel(p.id)} style={{ cursor: 'pointer' }}>
-                    <td><div style={{ fontSize: 12, fontWeight: 500 }}>{p.name}</div><div className="cell-id">{p.id}</div></td>
-                    <td>{p.cat}</td>
-                    <td>
-                      {p.status === 'aprobada'  && <span className="pill good"><span className="d" />aprobada</span>}
-                      {p.status === 'pendiente' && <span className="pill warn"><span className="d" />en revisión</span>}
-                      {p.status === 'rechazada' && <span className="pill bad"><span className="d" />rechazada</span>}
-                    </td>
-                    <td className="cell-num" style={{ textAlign: 'right' }}>{p.uses}</td>
-                    <td><button className="iconbtn"><Ico.more /></button></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <div className="card">
-          <div className="card-h"><h2 className="h2">Vista previa</h2></div>
-          <div className="card-b">
-            <div className="field"><label>Nombre</label><input className="input" defaultValue={t.name} /></div>
-            <div className="spacer-s" />
-            <div className="field"><label>Categoría</label>
-              <select className="input"><option>Marketing</option><option>Utilidad</option><option>Autenticación</option></select>
-            </div>
-            <div className="spacer-s" />
-            <div className="field"><label>Cuerpo</label><textarea className="input" defaultValue={t.body} style={{ minHeight: 120 }} /></div>
-            <div className="spacer-m" />
-            <div className="h3" style={{ marginBottom: 8 }}>Vista previa en WhatsApp</div>
-            <div style={{ background: '#E5DDD5', padding: 14, borderRadius: 6 }}>
-              <div className="bubble bot" style={{ whiteSpace: 'pre-line', maxWidth: '100%' }}>
-                {t.body.replace(/\{\{1\}\}/g, 'María').replace(/\{\{2\}\}/g, 'Tarapoto 7d/6n').replace(/\{\{3\}\}/g, '2').replace(/\{\{4\}\}/g, '14 may 2026').replace(/\{\{5\}\}/g, '1,178')}
-                <span className="ts">14:32 ✓✓</span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
