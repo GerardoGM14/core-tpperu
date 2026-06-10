@@ -1,9 +1,23 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AppLayout from './layout/AppLayout';
 import TopProgress from './components/TopProgress';
 import { ROUTES } from './routes';
 import { ModalRoot } from './features/modals/Modals';
+import { AuthProvider } from './auth/AuthContext';
+import RequireAuth from './auth/RequireAuth';
+import Login from './features/auth/Login';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+      staleTime: 30_000,
+    },
+  },
+});
 import {
   useTweaks, TweaksPanel, TweakSection,
   TweakColor, TweakRadio, TweakToggle, TweakSelect,
@@ -122,18 +136,23 @@ function ChromeAndTweaks() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <TopProgress />
-      <Routes>
-        <Route path="/" element={<AppLayout />}>
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          {ROUTES.map(r => (
-            <Route key={r.id} path={r.path} element={r.element} />
-          ))}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Route>
-      </Routes>
-      <ChromeAndTweaks />
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <BrowserRouter>
+          <TopProgress />
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/" element={<RequireAuth><AppLayout /></RequireAuth>}>
+              <Route index element={<Navigate to="/dashboard" replace />} />
+              {ROUTES.map(r => (
+                <Route key={r.id} path={r.path} element={r.element} />
+              ))}
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Route>
+          </Routes>
+          <ChromeAndTweaks />
+        </BrowserRouter>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
