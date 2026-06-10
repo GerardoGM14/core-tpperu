@@ -26,7 +26,10 @@ import vive6 from '../assets/vive-6.png';
 import vive7 from '../assets/vive-7.png';
 import vive8 from '../assets/vive-8.png';
 import banderinVive from '../assets/banderin-vive.svg';
-import { paquetes, tagClase } from '../data/paquetes.js';
+import { getPaquetes, tagClase } from '../data/paquetes.js';
+
+// Paquetes reales del backend (con fallback local si la API no responde).
+const paquetes = await getPaquetes();
 
 // ============================================================
 //  Sección "Explora todas nuestras opciones"

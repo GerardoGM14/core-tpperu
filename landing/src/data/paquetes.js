@@ -128,3 +128,29 @@ export const paquetes = [
 export function tagClase(tag) {
 	return TAG_CLASES[tag] ?? TAG_CLASES.Imperdibles;
 }
+
+// ============================================================
+//  Conexión con el backend.
+//  getPaquetes() intenta traer los paquetes reales de la API; si el
+//  backend no responde (build sin API, caído, etc.), usa el array `paquetes`
+//  de arriba como respaldo, así la landing nunca se rompe.
+// ============================================================
+const API = import.meta.env.PUBLIC_API_URL || '';
+
+export async function getPaquetes() {
+	if (!API) return paquetes;
+	try {
+		const res = await fetch(`${API}/api/public/packages`);
+		if (!res.ok) throw new Error(`HTTP ${res.status}`);
+		const data = await res.json();
+		return Array.isArray(data) && data.length ? data : paquetes;
+	} catch (err) {
+		console.warn('[paquetes] backend no disponible, usando datos locales:', err.message);
+		return paquetes;
+	}
+}
+
+export async function getPaquetePorSlug(slug) {
+	const todos = await getPaquetes();
+	return todos.find((p) => p.slug === slug) ?? null;
+}

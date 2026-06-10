@@ -9,9 +9,10 @@ import Navbar from '../../components/Navbar.astro';
 import ReservaCard from '../../components/ReservaCard.astro';
 import ContactForm from '../../components/ContactForm.astro';
 import Footer from '../../components/Footer.astro';
-import { paquetes } from '../../data/paquetes.js';
+import { getPaquetes } from '../../data/paquetes.js';
 
-export function getStaticPaths() {
+export async function getStaticPaths() {
+	const paquetes = await getPaquetes();
 	return paquetes.map((paquete) => ({
 		params: { slug: paquete.slug },
 		props: { paquete },
