@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 
@@ -49,6 +50,14 @@ type sendRequest struct {
 	Body      string `json:"body"`
 }
 
+type sendMediaRequest struct {
+	RemoteJID string `json:"remoteJid"`
+	DataB64   string `json:"data"`     // archivo en base64
+	Mime      string `json:"mime"`     // image/jpeg, video/mp4, application/pdf...
+	Caption   string `json:"caption"`  // texto opcional
+	Filename  string `json:"filename"` // para documentos
+}
+
 func (h *Handlers) Send(w http.ResponseWriter, r *http.Request) {
 	var req sendRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -61,6 +70,29 @@ func (h *Handlers) Send(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res, err := h.wa.SendText(r.Context(), req.RemoteJID, req.Body)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, res)
+}
+
+func (h *Handlers) SendMedia(w http.ResponseWriter, r *http.Request) {
+	var req sendMediaRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid json")
+		return
+	}
+	if req.RemoteJID == "" || req.DataB64 == "" || req.Mime == "" {
+		writeError(w, http.StatusBadRequest, "remoteJid, data and mime are required")
+		return
+	}
+	data, err := base64.StdEncoding.DecodeString(req.DataB64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "data must be valid base64")
+		return
+	}
+	res, err := h.wa.SendMedia(r.Context(), req.RemoteJID, data, req.Mime, req.Caption, req.Filename)
 	if err != nil {
 		writeError(w, http.StatusBadGateway, err.Error())
 		return

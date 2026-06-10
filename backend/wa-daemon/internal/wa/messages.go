@@ -31,11 +31,36 @@ func buildTextMessage(body string) *waE2E.Message {
 	}
 }
 
-// extractContent decodifica el tipo de mensaje recibido. Por ahora cubrimos
-// los más comunes (texto, imagen, audio, video, documento, sticker, ubicación).
-// El caller que necesite más detalle puede leer e.Message directamente.
+// unwrap desenvuelve los contenedores que WhatsApp usa a veces (mensajes
+// efímeros, ver-una-vez, enviados-por-otro-dispositivo) para llegar al
+// contenido real. Es común en grupos.
+func unwrap(m *waE2E.Message) *waE2E.Message {
+	for i := 0; i < 5 && m != nil; i++ {
+		switch {
+		case m.GetEphemeralMessage() != nil:
+			m = m.GetEphemeralMessage().GetMessage()
+		case m.GetViewOnceMessage() != nil:
+			m = m.GetViewOnceMessage().GetMessage()
+		case m.GetViewOnceMessageV2() != nil:
+			m = m.GetViewOnceMessageV2().GetMessage()
+		case m.GetViewOnceMessageV2Extension() != nil:
+			m = m.GetViewOnceMessageV2Extension().GetMessage()
+		case m.GetDeviceSentMessage() != nil:
+			m = m.GetDeviceSentMessage().GetMessage()
+		case m.GetDocumentWithCaptionMessage() != nil:
+			m = m.GetDocumentWithCaptionMessage().GetMessage()
+		default:
+			return m
+		}
+	}
+	return m
+}
+
+// extractContent decodifica el tipo de mensaje recibido. Cubre los más comunes
+// (texto, imagen, audio, video, documento, sticker, ubicación) y desenvuelve
+// los contenedores típicos de grupos.
 func extractContent(e *events.Message) (kind, body, mediaURL, mediaMime string) {
-	m := e.Message
+	m := unwrap(e.Message)
 	if m == nil {
 		return "TEXT", "", "", ""
 	}

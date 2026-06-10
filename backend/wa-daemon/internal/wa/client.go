@@ -52,6 +52,13 @@ func (c *Client) Connect(ctx context.Context) (qr string, err error) {
 		return "", nil
 	}
 
+	// Si quedó un cliente previo a medias (QR expirado, intento anterior),
+	// lo desconectamos y descartamos para arrancar el emparejamiento limpio.
+	if c.wa != nil {
+		c.wa.Disconnect()
+		c.wa = nil
+	}
+
 	wac, err := openClient(ctx, c.cfg.DatabaseURL, c.logger)
 	if err != nil {
 		return "", fmt.Errorf("open client: %w", err)
@@ -60,14 +67,17 @@ func (c *Client) Connect(ctx context.Context) (qr string, err error) {
 	c.setupEventHandlers()
 
 	if wac.Store.ID == nil {
-		// Sin sesión: hay que escanear QR
-		qrChan, _ := wac.GetQRChannel(ctx)
+		// Sin sesión: hay que escanear QR.
+		// Usamos un contexto de fondo propio (no el de la request HTTP),
+		// porque el canal de QR vive más que la petición /connect.
+		bgCtx := context.Background()
+		qrChan, _ := wac.GetQRChannel(bgCtx)
 		if err := wac.Connect(); err != nil {
 			return "", fmt.Errorf("connect: %w", err)
 		}
-		_ = c.cfg.Publisher.PublishStatus(ctx, bus.StatusEvent{Status: "qr"})
+		_ = c.cfg.Publisher.PublishStatus(bgCtx, bus.StatusEvent{Status: "qr"})
 
-		go c.handleQR(ctx, qrChan)
+		go c.handleQR(bgCtx, qrChan)
 		return "qr-pending", nil
 	}
 
@@ -130,6 +140,33 @@ func (c *Client) SendText(ctx context.Context, remoteJID, body string) (SendResu
 	}, nil
 }
 
+// SendMedia sube un archivo a WhatsApp y lo envía al destinatario.
+func (c *Client) SendMedia(ctx context.Context, remoteJID string, data []byte, mime, caption, filename string) (SendResult, error) {
+	c.mu.Lock()
+	wac := c.wa
+	c.mu.Unlock()
+
+	if wac == nil || !wac.IsConnected() {
+		return SendResult{}, errors.New("not connected")
+	}
+
+	jid, err := parseJID(remoteJID)
+	if err != nil {
+		return SendResult{}, err
+	}
+
+	msg, err := c.uploadOutgoing(ctx, data, mime, caption, filename)
+	if err != nil {
+		return SendResult{}, err
+	}
+
+	resp, err := wac.SendMessage(ctx, jid, msg)
+	if err != nil {
+		return SendResult{}, err
+	}
+	return SendResult{ID: resp.ID, Timestamp: resp.Timestamp.Unix()}, nil
+}
+
 func (c *Client) Close() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -142,6 +179,7 @@ func (c *Client) handleQR(ctx context.Context, qrChan <-chan whatsmeow.QRChannel
 	for evt := range qrChan {
 		switch evt.Event {
 		case "code":
+			log.Printf("QR code generado (len=%d), publicando en Redis", len(evt.Code))
 			if err := c.cfg.Publisher.PublishQR(ctx, evt.Code); err != nil {
 				log.Printf("publish qr: %v", err)
 			}

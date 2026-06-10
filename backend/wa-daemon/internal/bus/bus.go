@@ -30,6 +30,14 @@ type InboundEvent struct {
 	MediaMimeType string         `json:"mediaMimeType,omitempty"`
 	Payload       map[string]any `json:"payload,omitempty"`
 	Timestamp     int64          `json:"timestamp"`
+
+	// Tipo de chat: "individual" | "group" | "community"
+	ChatType string `json:"chatType"`
+	// Nombre del chat (para grupos: el nombre del grupo)
+	ChatName string `json:"chatName,omitempty"`
+	// En grupos: quién envió el mensaje
+	SenderJID  string `json:"senderJid,omitempty"`
+	SenderName string `json:"senderName,omitempty"`
 }
 
 type StatusEvent struct {

@@ -62,10 +62,50 @@ func (c *Client) onMessage(ctx context.Context, e *events.Message) {
 		return
 	}
 
-	kind, body, mediaURL, mediaMime := extractContent(e)
+	// Aceptamos chats individuales y grupos. Ignoramos estados (@broadcast)
+	// y canales/newsletters (@newsletter), que no son conversaciones.
+	chat := e.Info.Chat
+	if chat.Server == "broadcast" || chat.Server == "newsletter" {
+		return
+	}
+
+	// Tipo de chat y nombre del autor (relevante en grupos).
+	chatType := "individual"
+	chatName := ""
+	senderJID := ""
+	senderName := ""
+	if e.Info.IsGroup {
+		chatType = "group"
+		senderJID = e.Info.Sender.ToNonAD().String()
+		senderName = e.Info.PushName // nombre que muestra quien escribió
+		// Nombre del grupo (best-effort; si falla, el frontend usa el JID)
+		if info, err := c.wa.GetGroupInfo(ctx, chat); err == nil && info != nil {
+			chatName = info.GroupName.Name
+			if info.IsParent {
+				chatType = "community"
+			}
+		}
+	}
+
+	kind, body, _, _ := extractContent(e)
+
+	// Si trae media, la descargamos/desciframos y guardamos en disco.
+	// mediaURL pasa a ser una ruta servible: /media/<archivo>.
+	mediaURL := ""
+	mediaMime := ""
+	if kind == "IMAGE" || kind == "VIDEO" || kind == "AUDIO" || kind == "DOCUMENT" || kind == "STICKER" {
+		if name, mime := c.downloadIncoming(ctx, e); name != "" {
+			mediaURL = "/media/" + name
+			mediaMime = mime
+		}
+	}
+
+	// JID normalizado: solo usuario + servidor (sin :device), p.ej.
+	// "51987654321@s.whatsapp.net". Así la conversación es estable.
+	cleanJID := chat.ToNonAD().String()
 
 	evt := bus.InboundEvent{
-		RemoteJID:     e.Info.Chat.String(),
+		RemoteJID:     cleanJID,
 		PushName:      e.Info.PushName,
 		ExternalID:    e.Info.ID,
 		Kind:          kind,
@@ -73,6 +113,10 @@ func (c *Client) onMessage(ctx context.Context, e *events.Message) {
 		MediaURL:      mediaURL,
 		MediaMimeType: mediaMime,
 		Timestamp:     e.Info.Timestamp.UnixMilli(),
+		ChatType:      chatType,
+		ChatName:      chatName,
+		SenderJID:     senderJID,
+		SenderName:    senderName,
 	}
 
 	if err := c.cfg.Publisher.PublishInbound(ctx, evt); err != nil {

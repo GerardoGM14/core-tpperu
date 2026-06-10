@@ -61,6 +61,11 @@ func main() {
 	r.Post("/connect", h.Connect)
 	r.Post("/disconnect", h.Disconnect)
 	r.Post("/send", h.Send)
+	r.Post("/send-media", h.SendMedia)
+
+	// Servir archivos de media descargados de WhatsApp en /media/*
+	mediaFS := http.FileServer(http.Dir(wa.MediaDir()))
+	r.Handle("/media/*", http.StripPrefix("/media/", mediaFS))
 
 	srv := &http.Server{
 		Addr:              ":" + port,
