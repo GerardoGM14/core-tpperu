@@ -3,7 +3,8 @@ import { Ventas } from './features/ventas/Ventas';
 import Clientes from './features/clientes/Clientes';
 import { Conversations, Plantillas } from './features/conversations/Conversations';
 import FlowBuilder from './features/flows/FlowBuilder';
-import { LandingEditor, Catalogo, Reportes } from './features/landing/LandingEditor';
+import { LandingEditor, Reportes } from './features/landing/LandingEditor';
+import Catalogo from './features/catalogo/Catalogo';
 import { Documentos, Recordatorios } from './features/modules/Modules';
 import WhatsappSettings from './features/whatsapp/WhatsappSettings';
 

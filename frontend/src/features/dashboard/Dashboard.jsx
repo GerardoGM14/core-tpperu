@@ -1,9 +1,19 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import Ico from '../../components/icons';
-import { TRAVESIA_DATA } from '../../data/travesia';
+import { api } from '../../api/client';
 
-const { packages, orders, flows, conversations, activity, salesByHour, trafficByHour } = TRAVESIA_DATA;
+const soles = (cents) => 'S/ ' + (cents / 100).toLocaleString('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+const timeAgo = (iso) => {
+  const diff = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return 'ahora';
+  if (min < 60) return `hace ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `hace ${h} h`;
+  return `hace ${Math.floor(h / 24)} d`;
+};
 
 export function Sparkline({ data, color = 'var(--ink)', height = 32, fill = false }) {
   const w = 100, h = height;
@@ -41,8 +51,19 @@ export function Bars({ data, color = 'var(--ink)', height = 110 }) {
 }
 
 export function StatusPill({ status }) {
-  const map = { pagado: 'good', pendiente: 'warn', abandonado: 'bad', reembolsado: 'info' };
-  const labels = { pagado: 'Pagado', pendiente: 'Pendiente', abandonado: 'Abandonado', reembolsado: 'Reembolsado' };
+  // Acepta valores del backend (paid, pending...) y los antiguos en español.
+  const map = {
+    pagado: 'good', pagado_: 'good', paid: 'good', confirmed: 'good',
+    pendiente: 'warn', pending: 'warn',
+    abandonado: 'bad', cancelled: 'bad',
+    reembolsado: 'info', refunded: 'info',
+  };
+  const labels = {
+    paid: 'Pagado', pagado: 'Pagado', confirmed: 'Confirmado',
+    pending: 'Pendiente', pendiente: 'Pendiente',
+    cancelled: 'Cancelado', abandonado: 'Abandonado',
+    refunded: 'Reembolsado', reembolsado: 'Reembolsado',
+  };
   return <span className={'pill ' + (map[status] || '')}><span className="d" />{labels[status] || status}</span>;
 }
 
@@ -54,20 +75,35 @@ export function ChannelPill({ channel }) {
 export default function Dashboard() {
   const navigate = useNavigate();
   const onNav = (id) => navigate(`/${id}`);
-  const totalToday = orders.filter(o => o.date.startsWith('06 May')).reduce((s, o) => s + (o.status === 'pagado' ? o.total : 0), 0);
-  const reservasToday = orders.filter(o => o.date.startsWith('06 May') && o.status === 'pagado').length;
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: () => api('/api/dashboard/stats'),
+    refetchInterval: 30000, // refresca cada 30s
+  });
+
+  const k = data?.kpis;
+  const salesByDay = data?.salesByDay || [];
+  const topPackages = data?.topPackages || [];
+  const recent = data?.recentActivity || [];
+
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Buenos días' : hour < 19 ? 'Buenas tardes' : 'Buenas noches';
+  const today = new Date().toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric', weekday: 'long' });
+
+  if (isLoading || !k) {
+    return <div className="view"><div style={{ padding: 40, textAlign: 'center', color: 'var(--muted)' }}>Cargando panel…</div></div>;
+  }
 
   return (
     <div className="view">
       <div className="row between" style={{ marginBottom: 4 }}>
         <div>
-          <div className="h3" style={{ marginBottom: 6 }}>06 may 2026 · jueves · 14:34</div>
-          <h1 className="h1">Buenos días, Camila</h1>
-          <p className="lead" style={{ marginTop: 4 }}>3 conversaciones nuevas · 12 reservas en últimas 24 h · 2 flujos disparados</p>
-        </div>
-        <div className="row" style={{ gap: 8 }}>
-          <button className="btn ghost"><Ico.filter />Hoy · 06 may</button>
-          <button className="btn"><Ico.plus />Nueva campaña</button>
+          <div className="h3" style={{ marginBottom: 6 }}>{today}</div>
+          <h1 className="h1">{greeting}</h1>
+          <p className="lead" style={{ marginTop: 4 }}>
+            {k.openConversations} conversaciones abiertas · {k.unreadTotal} mensajes sin leer · {k.ordersTotal} reservas en total
+          </p>
         </div>
       </div>
 
@@ -75,28 +111,24 @@ export default function Dashboard() {
 
       <div className="grid-stats">
         <div className="stat">
-          <div className="label">Ventas hoy</div>
-          <div className="value">S/ {totalToday.toLocaleString()}</div>
-          <div className="delta up"><Ico.up /> +18.4% vs. ayer</div>
-          <div className="spark"><Sparkline data={salesByHour} color="var(--ink)" fill /></div>
+          <div className="label">Ingresos del mes</div>
+          <div className="value">{soles(k.revenueThisMonthCents)}</div>
+          <div className="delta up"><Ico.up /> {k.ordersPaid} pagadas</div>
+          {salesByDay.length > 1 && <div className="spark"><Sparkline data={salesByDay} color="var(--ink)" fill /></div>}
         </div>
         <div className="stat">
-          <div className="label">Reservas confirmadas</div>
-          <div className="value">{reservasToday}</div>
-          <div className="delta up"><Ico.up /> +2 vs. ayer</div>
-          <div className="spark"><Sparkline data={[2, 3, 1, 4, 2, 5, 3, 4]} color="var(--accent)" fill /></div>
+          <div className="label">Reservas pagadas</div>
+          <div className="value">{k.ordersPaid}</div>
+          <div className="delta up"><Ico.up /> de {k.ordersTotal} totales</div>
         </div>
         <div className="stat">
-          <div className="label">Carritos abandonados</div>
-          <div className="value">7</div>
-          <div className="delta down"><Ico.down /> –1 recuperado</div>
-          <div className="spark"><Sparkline data={[3, 5, 4, 7, 6, 8, 7, 7]} color="var(--bad)" /></div>
+          <div className="label">Ticket promedio</div>
+          <div className="value">{soles(k.avgTicketCents)}</div>
         </div>
         <div className="stat">
-          <div className="label">Tasa conversión</div>
-          <div className="value">3.8<span style={{ fontSize: 14, color: 'var(--muted)' }}>%</span></div>
-          <div className="delta up"><Ico.up /> +0.4 pts</div>
-          <div className="spark"><Sparkline data={[2.1, 2.4, 2.8, 3.0, 3.2, 3.5, 3.6, 3.8]} color="var(--good)" fill /></div>
+          <div className="label">Vía WhatsApp</div>
+          <div className="value">{soles(k.waRevenueCents)}</div>
+          <div className="delta up"><Ico.wa style={{ width: 11, height: 11 }} /> ingresos por chat</div>
         </div>
       </div>
 
@@ -105,45 +137,38 @@ export default function Dashboard() {
       <div className="grid-2">
         <div className="card">
           <div className="card-h">
-            <h2 className="h2">Tráfico y ventas · 24 h</h2>
-            <span className="pill"><span className="d" style={{ background: 'var(--ink)' }} />Visitas</span>
-            <span className="pill accent"><span className="d" />Ventas</span>
+            <h2 className="h2">Ventas · últimos 14 días</h2>
+            <span className="pill accent"><span className="d" />Ingresos</span>
             <button className="iconbtn" style={{ marginLeft: 'auto' }}><Ico.more /></button>
           </div>
           <div className="card-b">
-            <div style={{ position: 'relative', height: 180 }}>
-              <div style={{ position: 'absolute', inset: 0 }}>
-                <Sparkline data={trafficByHour} color="var(--ink)" height={180} fill />
-              </div>
-              <div style={{ position: 'absolute', inset: 0 }}>
-                <Sparkline data={salesByHour.map(v => v * 5)} color="var(--accent)" height={180} />
-              </div>
-            </div>
-            <div className="row" style={{ gap: 0, marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--muted)' }}>
-              {['00', '03', '06', '09', '12', '15', '18', '21'].map(h => <div key={h} style={{ flex: 1 }}>{h}h</div>)}
+            <div style={{ height: 180 }}>
+              {salesByDay.length > 1
+                ? <Sparkline data={salesByDay} color="var(--accent)" height={180} fill />
+                : <div style={{ color: 'var(--muted)', fontSize: 12, textAlign: 'center', paddingTop: 70 }}>Sin ventas en el periodo</div>}
             </div>
           </div>
         </div>
 
         <div className="card">
           <div className="card-h">
-            <h2 className="h2">Actividad en vivo</h2>
-            <span className="pill good"><span className="d" />en tiempo real</span>
+            <h2 className="h2">Actividad reciente</h2>
+            <span className="pill good"><span className="d" />en vivo</span>
           </div>
           <div className="card-b flush" style={{ maxHeight: 360, overflow: 'auto' }}>
-            {activity.map((a, i) => (
+            {recent.map((a, i) => (
               <div key={i} className="feed-item">
-                <div className={'feed-rail ' + (a.kind === 'sale' ? 'good' : a.kind === 'wa' ? 'wa' : a.kind === 'edit' ? '' : 'acc')} />
+                <div className={'feed-rail ' + (a.status === 'PAID' ? 'good' : a.channel === 'WHATSAPP' ? 'wa' : 'acc')} />
                 <div className="feed-body">
-                  <div className="t"><b style={{ fontWeight: 500 }}>{a.who}</b> {a.what}</div>
+                  <div className="t"><b style={{ fontWeight: 500 }}>{a.customer}</b> · {a.code} — {a.packageName}</div>
                   <div className="s">
-                    <span className="mono">{a.t}</span>
-                    {a.amount && <> · <b style={{ color: 'var(--ink)', fontWeight: 500 }}>{a.amount}</b></>}
+                    <span className="mono">{timeAgo(a.createdAt)}</span> · <b style={{ color: 'var(--ink)', fontWeight: 500 }}>{soles(a.totalCents)}</b>
                   </div>
                 </div>
-                <div className="feed-meta">{a.ago}</div>
+                <div className="feed-meta"><StatusPill status={(a.status || '').toLowerCase()} /></div>
               </div>
             ))}
+            {recent.length === 0 && <div style={{ padding: 20, textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>Sin actividad reciente.</div>}
           </div>
         </div>
       </div>
@@ -159,18 +184,16 @@ export default function Dashboard() {
           <div className="card-b flush">
             <table className="t">
               <thead>
-                <tr>
-                  <th>ID</th><th>Cliente</th><th>Canal</th><th style={{ textAlign: 'right' }}>Total</th><th>Estado</th>
-                </tr>
+                <tr><th>ID</th><th>Cliente</th><th>Canal</th><th style={{ textAlign: 'right' }}>Total</th><th>Estado</th></tr>
               </thead>
               <tbody>
-                {orders.slice(0, 6).map(o => (
-                  <tr key={o.id}>
-                    <td><span className="cell-id">{o.id}</span></td>
+                {recent.map((o) => (
+                  <tr key={o.code} style={{ cursor: 'pointer' }} onClick={() => onNav('ventas')}>
+                    <td><span className="cell-id">{o.code}</span></td>
                     <td>{o.customer}</td>
-                    <td><ChannelPill channel={o.channel} /></td>
-                    <td className="cell-num" style={{ textAlign: 'right' }}>S/ {o.total.toLocaleString()}</td>
-                    <td><StatusPill status={o.status} /></td>
+                    <td><ChannelPill channel={(o.channel || '').toLowerCase()} /></td>
+                    <td className="cell-num" style={{ textAlign: 'right' }}>{soles(o.totalCents)}</td>
+                    <td><StatusPill status={(o.status || '').toLowerCase()} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -179,22 +202,19 @@ export default function Dashboard() {
         </div>
 
         <div className="card">
-          <div className="card-h">
-            <h2 className="h2">Flujos de WhatsApp</h2>
-            <button className="btn ghost sm" onClick={() => onNav('flujos')}>Editar flujos <Ico.arrow /></button>
-          </div>
+          <div className="card-h"><h2 className="h2">Top paquetes</h2></div>
           <div className="card-b flush">
-            {flows.slice(0, 5).map(f => (
-              <div key={f.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: 16, padding: '10px 14px', borderBottom: '1px solid var(--hair)', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 500 }}>{f.name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'var(--font-mono)' }}>{f.trigger}</div>
+            {topPackages.map((p, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderBottom: '1px solid var(--hair)' }}>
+                <div className="mono" style={{ fontSize: 11, color: 'var(--muted)', width: 16 }}>{i + 1}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'var(--font-mono)' }}>{soles(p.revenue)} · {p.count} reservas</div>
                 </div>
-                <div className="cell-num" style={{ fontSize: 11, color: 'var(--muted)' }}>{f.sent} env.</div>
-                <div className="cell-num" style={{ fontSize: 11, color: 'var(--good)' }}>{Math.round((f.conv / f.sent) * 100)}% conv.</div>
-                <span className={'switch' + (f.active ? ' on' : '')} />
+                <div style={{ width: 50, height: 18 }}><Bars data={[p.count * 0.4, p.count * 0.6, p.count * 0.5, p.count * 0.8, p.count]} color="var(--accent)" height={18} /></div>
               </div>
             ))}
+            {topPackages.length === 0 && <div style={{ padding: 20, textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>Sin ventas todavía.</div>}
           </div>
         </div>
       </div>
@@ -203,51 +223,36 @@ export default function Dashboard() {
 
       <div className="grid-3">
         <div className="card">
-          <div className="card-h"><h2 className="h2">Top paquetes hoy</h2></div>
-          <div className="card-b flush">
-            {[...packages].filter(p => p.status === 'active').sort((a, b) => b.sales - a.sales).slice(0, 4).map((p, i) => (
-              <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderBottom: '1px solid var(--hair)' }}>
-                <div className="mono" style={{ fontSize: 11, color: 'var(--muted)', width: 16 }}>{i + 1}</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'var(--font-mono)' }}>S/ {p.price} · {p.sales} reservas</div>
-                </div>
-                <div style={{ width: 50, height: 18 }}><Bars data={[p.sales * 0.4, p.sales * 0.6, p.sales * 0.5, p.sales * 0.8, p.sales]} color="var(--accent)" height={18} /></div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="card-h"><h2 className="h2">Bandeja WhatsApp</h2><span className="pill wa"><span className="d" />3 sin leer</span></div>
-          <div className="card-b flush">
-            {conversations.slice(0, 4).map(c => (
-              <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderBottom: '1px solid var(--hair)', cursor: 'pointer' }} onClick={() => onNav('conversaciones')}>
-                <div className="av">{c.name.split(' ').map(n => n[0]).slice(0, 2).join('')}</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 500 }}>{c.name}</div>
-                  <div className="pv" style={{ fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.preview}</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div className="mono" style={{ fontSize: 10, color: 'var(--muted)' }}>{c.time}</div>
-                  {c.unread > 0 && <span className="pill ink" style={{ marginTop: 2, padding: '1px 6px', fontSize: 10 }}>{c.unread}</span>}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="card-h"><h2 className="h2">Salud del sitio</h2><span className="pill good"><span className="d" />todo OK</span></div>
+          <div className="card-h"><h2 className="h2">Clientes</h2></div>
           <div className="card-b">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', rowGap: 10, columnGap: 12, fontSize: 12 }}>
-              <span style={{ color: 'var(--muted)' }}>Tiempo de carga (p50)</span><span className="mono">1.24 s</span>
-              <span style={{ color: 'var(--muted)' }}>API checkout</span><span className="mono" style={{ color: 'var(--good)' }}>200 · 124 ms</span>
-              <span style={{ color: 'var(--muted)' }}>WhatsApp Business</span><span className="mono" style={{ color: 'var(--good)' }}>conectado</span>
-              <span style={{ color: 'var(--muted)' }}>Mercado Pago</span><span className="mono" style={{ color: 'var(--good)' }}>conectado</span>
-              <span style={{ color: 'var(--muted)' }}>Google Analytics</span><span className="mono" style={{ color: 'var(--good)' }}>sincronizado</span>
-              <span style={{ color: 'var(--muted)' }}>Última publicación</span><span className="mono" style={{ color: 'var(--ink-2)' }}>hace 54 min</span>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', rowGap: 10, fontSize: 12 }}>
+              <span style={{ color: 'var(--muted)' }}>Total contactos</span><span className="mono" style={{ fontWeight: 500 }}>{k.customersTotal}</span>
+              <span style={{ color: 'var(--muted)' }}>Nuevos (7 días)</span><span className="mono" style={{ color: 'var(--good)' }}>+{k.customersThisWeek}</span>
+              <span style={{ color: 'var(--muted)' }}>Paquetes activos</span><span className="mono">{k.packagesActive}</span>
             </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-h"><h2 className="h2">WhatsApp</h2>{k.unreadTotal > 0 && <span className="pill wa"><span className="d" />{k.unreadTotal} sin leer</span>}</div>
+          <div className="card-b">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', rowGap: 10, fontSize: 12 }}>
+              <span style={{ color: 'var(--muted)' }}>Conversaciones</span><span className="mono" style={{ fontWeight: 500 }}>{k.conversations}</span>
+              <span style={{ color: 'var(--muted)' }}>Abiertas</span><span className="mono">{k.openConversations}</span>
+              <span style={{ color: 'var(--muted)' }}>Sin leer</span><span className="mono" style={{ color: k.unreadTotal > 0 ? 'var(--accent)' : 'var(--good)' }}>{k.unreadTotal}</span>
+            </div>
+            <div className="spacer-s" />
+            <button className="btn ghost sm" style={{ width: '100%', justifyContent: 'center' }} onClick={() => onNav('conversaciones')}>Ir a la bandeja <Ico.arrow /></button>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-h"><h2 className="h2">Ingresos totales</h2></div>
+          <div className="card-b">
+            <div style={{ fontSize: 28, fontWeight: 600, letterSpacing: '-0.02em' }}>{soles(k.revenueTotalCents)}</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>de {k.ordersPaid} reservas pagadas</div>
+            <div className="spacer-s" />
+            <button className="btn ghost sm" style={{ width: '100%', justifyContent: 'center' }} onClick={() => onNav('catalogo')}>Gestionar catálogo <Ico.arrow /></button>
           </div>
         </div>
       </div>
