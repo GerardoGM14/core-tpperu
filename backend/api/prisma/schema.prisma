@@ -62,15 +62,22 @@ enum PackageStatus {
 model Package {
   id           String        @id @default(cuid())
   code         String        @unique           // PKG-001
+  slug         String?       @unique           // tarapoto-laguna-azul-7d6n (URL landing)
   name         String
   destination  String
+  category     String?                          // "TARAPOTO ECONÓMICO", "INTERNACIONAL"...
   description  String?
   durationDays Int
   durationNights Int
-  priceCents   Int                              // en céntimos PEN
+  priceCents   Int                              // precio actual, en céntimos PEN
+  priceBeforeCents Int?                          // precio tachado (antes)
+  discountLabel String?                          // "-45%"
+  tag          String?                           // "Imperdibles" | "Nuevo" | "Cyber"
   currency     String        @default("PEN")
   status       PackageStatus @default(DRAFT)
-  imageUrl     String?
+  imageUrl     String?                           // imagen principal de la card
+  gallery      String[]                          // URLs de la galería de detalle
+  includes     String[]                          // bullets de "qué incluye"
   metadata     Json?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
@@ -173,6 +180,7 @@ model Conversation {
   customer     Customer?          @relation(fields: [customerId], references: [id])
   remoteJid    String             @unique         // 51987654321@s.whatsapp.net
   displayName  String?
+  chatType     String             @default("individual") // individual | group | community
   status       ConversationStatus @default(OPEN)
   unreadCount  Int                @default(0)
   lastMessageAt DateTime?
@@ -224,6 +232,7 @@ model Message {
   kind            MessageKind      @default(TEXT)
   status          MessageStatus    @default(PENDING)
   body            String?
+  senderName      String?          // en grupos: quién envió el mensaje
   mediaUrl        String?
   mediaMimeType   String?
   mediaCaption    String?
