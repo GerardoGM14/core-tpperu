@@ -3,7 +3,7 @@ import Ico from '../../components/icons';
 import { TRAVESIA_DATA } from '../../data/travesia';
 import { StatusPill, ChannelPill } from '../dashboard/Dashboard';
 
-const { orders, customers } = TRAVESIA_DATA;
+const { orders } = TRAVESIA_DATA;
 
 export function Ventas() {
   const [filter, setFilter] = React.useState('todos');
@@ -165,95 +165,6 @@ export function Ventas() {
             </div>
           </div>
         )}
-      </div>
-    </div>
-  );
-}
-
-export function Clientes() {
-  const [stage, setStage] = React.useState('todos');
-  const filtered = customers.filter(c => stage === 'todos' || c.stage === stage);
-
-  return (
-    <div className="view">
-      <div className="row between">
-        <div>
-          <h1 className="h1">Clientes</h1>
-          <p className="lead" style={{ marginTop: 4 }}>Todos los contactos capturados desde la web, WhatsApp y campañas.</p>
-        </div>
-        <div className="row" style={{ gap: 8 }}>
-          <button className="btn ghost"><Ico.copy />Importar CSV</button>
-          <button className="btn"><Ico.plus />Nuevo contacto</button>
-        </div>
-      </div>
-
-      <div className="spacer-m" />
-
-      <div className="grid-stats">
-        <div className="stat"><div className="label">Total contactos</div><div className="value">2,041</div><div className="delta up"><Ico.up />+38 esta semana</div></div>
-        <div className="stat"><div className="label">Compradores</div><div className="value">428</div><div className="delta up"><Ico.up />+12</div></div>
-        <div className="stat"><div className="label">Carrito abandonado</div><div className="value">63</div><div className="delta down"><Ico.down />–7 recuperados</div></div>
-        <div className="stat"><div className="label">LTV promedio</div><div className="value">S/ 612</div><div className="delta up"><Ico.up />+S/ 24</div></div>
-      </div>
-
-      <div className="spacer-m" />
-
-      <div className="card">
-        <div className="card-h">
-          <div className="tabs" style={{ border: 0, marginBottom: -13, marginTop: -12 }}>
-            {['todos', 'lead', 'carrito-abandonado', 'comprador'].map(k => (
-              <button key={k} className={'tab ' + (stage === k ? 'active' : '')} onClick={() => setStage(k)}>{k}</button>
-            ))}
-          </div>
-          <div style={{ flex: 1 }} />
-          <div className="topbar-search" style={{ width: 200 }}>
-            <Ico.search /><input placeholder="Buscar contacto..." />
-          </div>
-        </div>
-        <div className="card-b flush">
-          <table className="t">
-            <thead>
-              <tr>
-                <th>Cliente</th>
-                <th>Teléfono</th>
-                <th>Email</th>
-                <th>Ciudad</th>
-                <th style={{ textAlign: 'right' }}>Reservas</th>
-                <th style={{ textAlign: 'right' }}>Gastado</th>
-                <th>Etapa</th>
-                <th>Última actividad</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(c => (
-                <tr key={c.id}>
-                  <td>
-                    <div className="row" style={{ gap: 8 }}>
-                      <div className="av sm">{c.name.split(' ').map(n => n[0]).slice(0, 2).join('')}</div>
-                      <div>
-                        <div style={{ fontSize: 12, fontWeight: 500 }}>{c.name}</div>
-                        <div className="cell-id">{c.id}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="cell-id">{c.phone}</td>
-                  <td className="cell-id">{c.email}</td>
-                  <td>{c.city}</td>
-                  <td className="cell-num" style={{ textAlign: 'right' }}>{c.orders}</td>
-                  <td className="cell-num" style={{ textAlign: 'right', fontWeight: c.spent > 0 ? 500 : 400, color: c.spent > 0 ? 'var(--ink)' : 'var(--muted)' }}>S/ {c.spent.toLocaleString()}</td>
-                  <td>
-                    {c.stage === 'comprador' && <span className="pill good"><span className="d" />Comprador</span>}
-                    {c.stage === 'carrito-abandonado' && <span className="pill warn"><span className="d" />Carrito abierto</span>}
-                    {c.stage === 'lead' && <span className="pill info"><span className="d" />Lead</span>}
-                  </td>
-                  <td className="cell-id">{c.lastSeen}</td>
-                  <td><button className="iconbtn"><Ico.wa /></button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
       </div>
     </div>
   );

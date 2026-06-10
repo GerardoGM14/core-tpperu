@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import Ico from '../components/icons';
 import logo from '../assets/logo-tppperu.png';
+import { useAuth } from '../auth/AuthContext';
 
 const NAV = [
   { group: 'Operaciones', items: [
@@ -15,6 +16,7 @@ const NAV = [
     { id: 'recordatorios', label: 'Recordatorios y campañas', icon: 'bell' },
     { id: 'documentos',    label: 'Documentos del viaje',     icon: 'copy' },
     { id: 'plantillas',    label: 'Plantillas',               icon: 'bolt' },
+    { id: 'whatsapp',      label: 'Conexión WhatsApp',        icon: 'wa' },
   ]},
   { group: 'Sitio público', items: [
     { id: 'landing',   label: 'Landing y cards', icon: 'layout' },
@@ -24,6 +26,8 @@ const NAV = [
 ];
 
 export default function Sidebar() {
+  const { user, logout } = useAuth();
+  const initials = (user?.email || '??').slice(0, 2).toUpperCase();
   return (
     <aside className="sidebar">
       <div className="sb-brand">
@@ -63,12 +67,14 @@ export default function Sidebar() {
       </div>
 
       <div className="sb-footer">
-        <div className="sb-avatar">CM</div>
+        <div className="sb-avatar">{initials}</div>
         <div className="sb-user-meta">
-          <div className="nm">Camila Morales</div>
-          <div className="em">ops@tppperu.com</div>
+          <div className="nm">{user?.role === 'ADMIN' ? 'Administrador' : 'Agente'}</div>
+          <div className="em">{user?.email || ''}</div>
         </div>
-        <button className="iconbtn" title="Ajustes"><Ico.cog /></button>
+        <button className="iconbtn" title="Cerrar sesión" data-handled="1" onClick={logout}>
+          <Ico.arrow style={{ transform: 'rotate(180deg)' }} />
+        </button>
       </div>
     </aside>
   );

@@ -324,6 +324,9 @@ input, select, textarea { font-family: inherit; font-size: inherit; }
   padding: 24px 28px;
 }
 .view.no-pad { padding: 0; }
+/* Vistas full-height (conversaciones, builder): no scrollean globalmente;
+   el scroll vive en los paneles internos. */
+.view.no-pad { overflow: hidden; min-height: 0; }
 
 /* ---------- Headings & text ---------- */
 .h1 {
@@ -724,10 +727,12 @@ textarea.input { min-height: 80px; resize: vertical; }
   display: grid;
   grid-template-columns: 280px 1fr 320px;
   height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
-.conv-list { border-right: 1px solid var(--hair); overflow: auto; background: var(--paper); }
-.conv-thread { display: flex; flex-direction: column; background: var(--surface); }
-.conv-side { border-left: 1px solid var(--hair); overflow: auto; background: var(--paper); }
+.conv-list { border-right: 1px solid var(--hair); overflow-y: auto; min-height: 0; background: var(--paper); }
+.conv-thread { display: flex; flex-direction: column; min-height: 0; background: var(--surface); }
+.conv-side { border-left: 1px solid var(--hair); overflow-y: auto; min-height: 0; background: var(--paper); }
 
 .cl-item {
   display: flex; gap: 10px;
@@ -749,7 +754,7 @@ textarea.input { min-height: 80px; resize: vertical; }
   line-height: 1.4;
 }
 .bubble.me { background: var(--ink); color: var(--paper); border-bottom-right-radius: 2px; }
-.bubble.them { background: var(--paper); border: 1px solid var(--hair); border-bottom-left-radius: 2px; }
+.bubble.them { background: var(--surface); border: 1px solid var(--hair); border-bottom-left-radius: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
 .bubble.bot { background: var(--accent-soft); color: var(--ink); border-bottom-right-radius: 2px; border: 1px solid oklch(85% 0.06 60); }
 .bubble .ts { font-size: 9px; opacity: 0.6; margin-top: 4px; font-family: var(--font-mono); display: block; }
 
