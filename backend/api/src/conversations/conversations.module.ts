@@ -8,6 +8,6 @@ import { WhatsappBridgeModule } from '../whatsapp-bridge/whatsapp-bridge.module'
   imports: [WhatsappBridgeModule],
   controllers: [ConversationsController],
   providers: [ConversationsService, ConversationsGateway],
-  exports: [ConversationsService],
+  exports: [ConversationsService, ConversationsGateway],
 })
 export class ConversationsModule {}

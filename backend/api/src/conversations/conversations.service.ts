@@ -13,6 +13,9 @@ export interface InboundMessageEvent {
   mediaMimeType?: string;
   payload?: Prisma.JsonValue;
   timestamp: number;
+  chatType?: string;     // individual | group | community
+  chatName?: string;     // nombre del grupo
+  senderName?: string;   // en grupos: autor del mensaje
 }
 
 @Injectable()
@@ -26,7 +29,12 @@ export class ConversationsService {
 
   findAll() {
     return this.prisma.conversation.findMany({
-      include: { customer: true, _count: { select: { messages: true } } },
+      include: {
+        customer: true,
+        _count: { select: { messages: true } },
+        // último mensaje para el preview de la bandeja
+        messages: { take: 1, orderBy: { createdAt: 'desc' } },
+      },
       orderBy: { lastMessageAt: 'desc' },
     });
   }
@@ -56,11 +64,16 @@ export class ConversationsService {
     let convo = await this.prisma.conversation.findUnique({
       where: { remoteJid: evt.remoteJid },
     });
+    const isGroup = evt.chatType === 'group' || evt.chatType === 'community';
+    // Para grupos, el nombre que mostramos es el del grupo; para individuales, el pushName.
+    const convoName = isGroup ? (evt.chatName || undefined) : evt.pushName;
+
     if (!convo) {
       convo = await this.prisma.conversation.create({
         data: {
           remoteJid: evt.remoteJid,
-          displayName: evt.pushName,
+          displayName: convoName,
+          chatType: evt.chatType || 'individual',
           unreadCount: 1,
           lastMessageAt: new Date(evt.timestamp),
         },
@@ -71,10 +84,17 @@ export class ConversationsService {
         data: {
           unreadCount: { increment: 1 },
           lastMessageAt: new Date(evt.timestamp),
-          displayName: evt.pushName ?? convo.displayName,
+          displayName: convoName ?? convo.displayName,
+          chatType: evt.chatType || convo.chatType,
         },
       });
     }
+
+    // El daemon entrega rutas tipo "/media/xxx"; las exponemos vía la API
+    // como "/api/whatsapp/media/xxx" para que el frontend las consuma.
+    const mediaUrl = evt.mediaUrl
+      ? evt.mediaUrl.replace(/^\/media\//, '/api/whatsapp/media/')
+      : null;
 
     const msg = await this.prisma.message.create({
       data: {
@@ -84,7 +104,8 @@ export class ConversationsService {
         kind: evt.kind,
         status: MessageStatus.DELIVERED,
         body: evt.body ?? null,
-        mediaUrl: evt.mediaUrl ?? null,
+        senderName: evt.senderName ?? null,
+        mediaUrl,
         mediaMimeType: evt.mediaMimeType ?? null,
         payload: evt.payload ?? undefined,
         deliveredAt: new Date(evt.timestamp),
@@ -92,6 +113,71 @@ export class ConversationsService {
     });
 
     return { conversation: convo, message: msg };
+  }
+
+  /**
+   * Persiste un mensaje saliente ya aceptado por el wa-daemon.
+   * El timestamp del daemon viene en segundos Unix.
+   */
+  async recordOutbound(
+    conversationId: string,
+    body: string,
+    result: { id?: string; timestamp?: number },
+  ) {
+    const sentAt = result?.timestamp ? new Date(result.timestamp * 1000) : new Date();
+    const [msg] = await this.prisma.$transaction([
+      this.prisma.message.create({
+        data: {
+          conversationId,
+          externalId: result?.id ?? null,
+          direction: MessageDirection.OUTBOUND,
+          kind: MessageKind.TEXT,
+          status: MessageStatus.SENT,
+          body,
+          sentAt,
+        },
+      }),
+      this.prisma.conversation.update({
+        where: { id: conversationId },
+        data: { lastMessageAt: sentAt },
+      }),
+    ]);
+    return msg;
+  }
+
+  /** Persiste un mensaje de media saliente. El frontend ya tiene el archivo,
+   *  pero para el historial guardamos kind + caption (la media saliente no la
+   *  re-servimos; se ve en el momento del envío). */
+  async recordOutboundMedia(
+    conversationId: string,
+    media: { mime: string; caption?: string; filename?: string },
+    result: { id?: string; timestamp?: number },
+  ) {
+    const sentAt = result?.timestamp ? new Date(result.timestamp * 1000) : new Date();
+    const kind = media.mime.startsWith('image') ? MessageKind.IMAGE
+      : media.mime.startsWith('video') ? MessageKind.VIDEO
+      : media.mime.startsWith('audio') ? MessageKind.AUDIO
+      : MessageKind.DOCUMENT;
+    const [msg] = await this.prisma.$transaction([
+      this.prisma.message.create({
+        data: {
+          conversationId,
+          externalId: result?.id ?? null,
+          direction: MessageDirection.OUTBOUND,
+          kind,
+          status: MessageStatus.SENT,
+          body: media.caption ?? null,
+          mediaCaption: media.caption ?? null,
+          mediaMimeType: media.mime,
+          sentAt,
+        },
+      }),
+      this.prisma.conversation.update({
+        where: { id: conversationId },
+        data: { lastMessageAt: sentAt },
+      }),
+    ]);
+    return msg;
   }
 
   async markRead(conversationId: string) {

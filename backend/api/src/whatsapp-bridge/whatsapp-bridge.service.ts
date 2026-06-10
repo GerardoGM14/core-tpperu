@@ -27,6 +27,25 @@ export class WhatsappBridgeService {
     return this.req('POST', '/send', { remoteJid, body });
   }
 
+  async sendMedia(remoteJid: string, dataB64: string, mime: string, caption?: string, filename?: string) {
+    return this.req('POST', '/send-media', { remoteJid, data: dataB64, mime, caption, filename });
+  }
+
+  /** Descarga un archivo de media servido por el daemon (path tipo /media/xxx). */
+  async fetchMedia(path: string): Promise<{ buffer: Buffer; contentType: string }> {
+    const res = await fetch(`${this.baseUrl}${path}`);
+    if (!res.ok) throw new HttpException('media not found', res.status);
+    const arrayBuf = await res.arrayBuffer();
+    return {
+      buffer: Buffer.from(arrayBuf),
+      contentType: res.headers.get('content-type') || 'application/octet-stream',
+    };
+  }
+
+  get daemonUrl() {
+    return this.baseUrl;
+  }
+
   private async req(method: string, path: string, json?: unknown) {
     const res = await fetch(`${this.baseUrl}${path}`, {
       method,
