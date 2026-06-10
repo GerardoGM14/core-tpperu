@@ -28,6 +28,8 @@ pnpm-debug.log*
 .env
 .env.local
 .env.*.local
+.env.development
+.env.production
 !.env.example
 
 # ---------- Node / JS ----------
@@ -61,6 +63,11 @@ backend/wa-daemon/wa-daemon.exe
 vendor/
 go.work
 go.work.sum
+
+# media descargada de WhatsApp y logs locales del daemon (privado, artefactos)
+backend/wa-daemon/media/
+backend/wa-daemon/*.log
+backend/api/*.log
 
 # ---------- Astro ----------
 .astro/
