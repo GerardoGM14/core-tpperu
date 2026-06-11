@@ -232,6 +232,7 @@ model Message {
   kind            MessageKind      @default(TEXT)
   status          MessageStatus    @default(PENDING)
   body            String?
+  reaction        String?          // emoji de reacción al mensaje (ej. ❤️)
   senderName      String?          // en grupos: quién envió el mensaje
   mediaUrl        String?
   mediaMimeType   String?

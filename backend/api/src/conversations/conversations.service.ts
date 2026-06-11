@@ -16,6 +16,8 @@ export interface InboundMessageEvent {
   chatType?: string;     // individual | group | community
   chatName?: string;     // nombre del grupo
   senderName?: string;   // en grupos: autor del mensaje
+  reactionToId?: string; // si es reacción: externalId del mensaje al que apunta
+  fromMe?: boolean;      // true si lo enviaste tú (desde el teléfono u otro dispositivo)
 }
 
 @Injectable()
@@ -61,6 +63,38 @@ export class ConversationsService {
    * Crea la conversación si no existe.
    */
   async ingestInbound(evt: InboundMessageEvent) {
+    // Reacción: en vez de crear un mensaje, la adjuntamos al mensaje original.
+    if (evt.kind === 'REACTION' && evt.reactionToId) {
+      const target = await this.prisma.message.findUnique({
+        where: { externalId: evt.reactionToId },
+        include: { conversation: true },
+      });
+      if (target) {
+        const updated = await this.prisma.message.update({
+          where: { id: target.id },
+          data: { reaction: evt.body || null }, // body vacío = se quitó la reacción
+        });
+        // Devolvemos la conversación + el mensaje actualizado para refrescar la UI.
+        return { conversation: target.conversation, message: updated };
+      }
+      // Si no encontramos el mensaje objetivo, ignoramos la reacción (no la guardamos como mensaje).
+      return { conversation: null as any, message: null as any };
+    }
+
+    // Deduplicación: si ya guardamos este mensaje (p.ej. lo enviaste desde el
+    // panel y WhatsApp nos lo devuelve como propio), no lo duplicamos.
+    if (evt.externalId) {
+      const existing = await this.prisma.message.findUnique({
+        where: { externalId: evt.externalId },
+        include: { conversation: true },
+      });
+      if (existing) {
+        return { conversation: existing.conversation, message: existing };
+      }
+    }
+
+    const fromMe = !!evt.fromMe;
+
     let convo = await this.prisma.conversation.findUnique({
       where: { remoteJid: evt.remoteJid },
     });
@@ -74,7 +108,8 @@ export class ConversationsService {
           remoteJid: evt.remoteJid,
           displayName: convoName,
           chatType: evt.chatType || 'individual',
-          unreadCount: 1,
+          // Lo que envías tú no cuenta como "sin leer".
+          unreadCount: fromMe ? 0 : 1,
           lastMessageAt: new Date(evt.timestamp),
         },
       });
@@ -82,7 +117,7 @@ export class ConversationsService {
       convo = await this.prisma.conversation.update({
         where: { id: convo.id },
         data: {
-          unreadCount: { increment: 1 },
+          ...(fromMe ? {} : { unreadCount: { increment: 1 } }),
           lastMessageAt: new Date(evt.timestamp),
           displayName: convoName ?? convo.displayName,
           chatType: evt.chatType || convo.chatType,
@@ -100,15 +135,17 @@ export class ConversationsService {
       data: {
         conversationId: convo.id,
         externalId: evt.externalId,
-        direction: MessageDirection.INBOUND,
+        direction: fromMe ? MessageDirection.OUTBOUND : MessageDirection.INBOUND,
         kind: evt.kind,
-        status: MessageStatus.DELIVERED,
+        status: fromMe ? MessageStatus.SENT : MessageStatus.DELIVERED,
         body: evt.body ?? null,
         senderName: evt.senderName ?? null,
         mediaUrl,
         mediaMimeType: evt.mediaMimeType ?? null,
         payload: evt.payload ?? undefined,
-        deliveredAt: new Date(evt.timestamp),
+        ...(fromMe
+          ? { sentAt: new Date(evt.timestamp) }
+          : { deliveredAt: new Date(evt.timestamp) }),
       },
     });
 

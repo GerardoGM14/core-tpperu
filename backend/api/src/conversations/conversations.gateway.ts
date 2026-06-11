@@ -89,6 +89,8 @@ export class ConversationsGateway
 
   private async handleInbound(evt: InboundMessageEvent) {
     const { conversation, message } = await this.conversations.ingestInbound(evt);
+    // Reacción a un mensaje desconocido → nada que emitir.
+    if (!message) return;
     this.server.emit('message', { conversation, message });
   }
 }
