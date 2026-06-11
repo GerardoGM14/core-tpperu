@@ -136,7 +136,12 @@ export function Conversations() {
     queryFn: () => conversationsApi.messages(activeId, 100),
     enabled: !!activeId,
   });
-  const messages = React.useMemo(() => [...messagesDesc].reverse(), [messagesDesc]);
+  // Las reacciones no son mensajes propios: van pegadas a su mensaje original.
+  // Filtramos los REACTION sueltos (incluidos los viejos ya guardados).
+  const messages = React.useMemo(
+    () => [...messagesDesc].reverse().filter((m) => m.kind !== 'REACTION'),
+    [messagesDesc],
+  );
 
   // Tiempo real: cuando llega/sale un mensaje, refrescar bandeja e hilo
   React.useEffect(() => {
@@ -332,13 +337,20 @@ export function Conversations() {
                             {m.senderName}
                           </div>
                         )}
-                        <div className={'bubble ' + (isMe ? 'me' : 'them')} style={{ whiteSpace: 'pre-line' }}>
+                        <div className={'bubble ' + (isMe ? 'me' : 'them')} style={{ whiteSpace: 'pre-line', position: 'relative', marginBottom: m.reaction ? 10 : 0 }}>
                           <MessageMedia m={m} />
                           {m.body}
                           <span className="ts">
                             {timeLabel(m.sentAt || m.createdAt)}
                             {isMe && <span style={{ marginLeft: 4 }}>{m.status === 'READ' ? '✓✓' : '✓'}</span>}
                           </span>
+                          {m.reaction && (
+                            <span style={{
+                              position: 'absolute', bottom: -12, [isMe ? 'right' : 'left']: 8,
+                              background: 'var(--surface)', border: '1px solid var(--hair)', borderRadius: 999,
+                              padding: '1px 5px', fontSize: 13, lineHeight: 1.2, boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+                            }}>{m.reaction}</span>
+                          )}
                         </div>
                       </div>
                     );

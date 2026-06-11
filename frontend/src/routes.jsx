@@ -6,7 +6,8 @@ import { Plantillas } from './features/plantillas/Plantillas';
 import FlowBuilder from './features/flows/FlowBuilder';
 import { LandingEditor, Reportes } from './features/landing/LandingEditor';
 import Catalogo from './features/catalogo/Catalogo';
-import { Documentos, Recordatorios } from './features/modules/Modules';
+import { Recordatorios } from './features/modules/Modules';
+import { Documentos } from './features/documentos/Documentos';
 import WhatsappSettings from './features/whatsapp/WhatsappSettings';
 
 export const ROUTES = [
