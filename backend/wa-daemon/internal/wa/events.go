@@ -57,10 +57,8 @@ func (c *Client) setupEventHandlers() {
 }
 
 func (c *Client) onMessage(ctx context.Context, e *events.Message) {
-	// Ignorar mensajes salientes propios (echo)
-	if e.Info.IsFromMe {
-		return
-	}
+	// Procesamos también los mensajes propios (IsFromMe): son los que envías
+	// desde el teléfono u otro dispositivo. La API evita duplicar por externalId.
 
 	// Aceptamos chats individuales y grupos. Ignoramos estados (@broadcast)
 	// y canales/newsletters (@newsletter), que no son conversaciones.
@@ -88,6 +86,14 @@ func (c *Client) onMessage(ctx context.Context, e *events.Message) {
 	}
 
 	kind, body, _, _ := extractContent(e)
+
+	// Reacción: capturar a qué mensaje apunta (el body lleva el emoji).
+	reactionToID := ""
+	if kind == "REACTION" {
+		if rm := unwrap(e.Message).GetReactionMessage(); rm != nil {
+			reactionToID = rm.GetKey().GetID()
+		}
+	}
 
 	// Si trae media, la descargamos/desciframos y guardamos en disco.
 	// mediaURL pasa a ser una ruta servible: /media/<archivo>.
@@ -117,6 +123,8 @@ func (c *Client) onMessage(ctx context.Context, e *events.Message) {
 		ChatName:      chatName,
 		SenderJID:     senderJID,
 		SenderName:    senderName,
+		ReactionToID:  reactionToID,
+		FromMe:        e.Info.IsFromMe,
 	}
 
 	if err := c.cfg.Publisher.PublishInbound(ctx, evt); err != nil {

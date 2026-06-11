@@ -38,6 +38,14 @@ type InboundEvent struct {
 	// En grupos: quién envió el mensaje
 	SenderJID  string `json:"senderJid,omitempty"`
 	SenderName string `json:"senderName,omitempty"`
+
+	// Para reacciones (kind REACTION): ID del mensaje al que reacciona.
+	// Body lleva el emoji (vacío si se quitó la reacción).
+	ReactionToID string `json:"reactionToId,omitempty"`
+
+	// true si el mensaje lo enviaste tú (desde el teléfono u otro dispositivo).
+	// La API lo guarda como saliente, evitando duplicar si ya vino del panel.
+	FromMe bool `json:"fromMe"`
 }
 
 type StatusEvent struct {
