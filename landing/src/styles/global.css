@@ -12,6 +12,10 @@
   --color-dark: #121110;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   font-family: var(--font-body);
   margin: 0;

@@ -162,7 +162,7 @@ const heroImg = paquete.galeria?.[0] ?? paquete.imagen;
 		const valueEl = qty.querySelector<HTMLElement>('[data-qty-value]');
 		const minus = qty.querySelector<HTMLButtonElement>('[data-qty-minus]');
 		const plus = qty.querySelector<HTMLButtonElement>('[data-qty-plus]');
-		let n = parseInt(valueEl?.textContent ?? '2', 10) || 1;
+		let n = parseInt(valueEl?.textContent ?? '1', 10) || 1;
 		const render = () => { if (valueEl) valueEl.textContent = String(n); if (minus) minus.disabled = n <= 1; };
 		minus?.addEventListener('click', () => { if (n > 1) { n--; render(); } });
 		plus?.addEventListener('click', () => { n++; render(); });

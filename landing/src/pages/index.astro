@@ -164,7 +164,7 @@ const galeriaVive = [
 				</a>
 
 				{/* Botón 2: WhatsApp con blur y borde */}
-				<a href="https://wa.me/..." target="_blank" class="border border-white bg-white/5 backdrop-blur-[5.3px] px-8 py-3 rounded-md font-action font-medium text-[18px] text-white flex items-center justify-center gap-3 hover:bg-white/10 transition-all">
+				<a href="https://wa.me/51948461653?text=Hola%20TPP%20Per%C3%BA%2C%20quiero%20m%C3%A1s%20informaci%C3%B3n%20sobre%20sus%20tours%20y%20paquetes%20en%20Tarapoto." target="_blank" rel="noopener noreferrer" class="border border-white bg-white/5 backdrop-blur-[5.3px] px-8 py-3 rounded-md font-action font-medium text-[18px] text-white flex items-center justify-center gap-3 hover:bg-white/10 transition-all">
 					<img src={wspIcon.src} alt="WhatsApp" class="w-6 h-6" />
 					Hablar por WhatsApp
 				</a>
@@ -576,7 +576,9 @@ const galeriaVive = [
 	     El formulario va dentro del slot del Footer, apoyado sobre su cascada.
 	     ============================================================ */}
 	<Footer>
-		<ContactForm withBackground={false} />
+		<div id="contactanos" class="scroll-mt-24">
+			<ContactForm withBackground={false} />
+		</div>
 	</Footer>
 
 	{/* Carruseles: finito (flechas con límites) e infinito (loop sin fin con clones) */}

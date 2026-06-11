@@ -34,9 +34,9 @@ const wrapperClass = withBackground
 	)}
 
 	{/* Bloque: título + formulario */}
-	<div class="relative z-10 flex flex-col lg:flex-row gap-12 lg:gap-[87px] items-start w-full max-w-[1312px] mx-auto">
+	<div class="relative z-10 flex flex-col lg:flex-row gap-12 lg:gap-[64px] items-start w-full max-w-[1440px] mx-auto">
 		{/* Izquierda: título + descripción */}
-		<div class="flex gap-[49px] items-start w-full lg:w-[553px] shrink-0">
+		<div class="flex gap-[49px] items-start w-full lg:w-[440px] shrink-0">
 			<div class="hidden lg:flex items-center h-[68px] shrink-0">
 				<div class="size-[33px] rotate-45 bg-[rgba(244,177,59,0.13)] flex items-center justify-center">
 					<div class="size-[10px] bg-[#f4b13b]"></div>
@@ -52,15 +52,15 @@ const wrapperClass = withBackground
 		</div>
 
 		{/* Derecha: card con formulario */}
-		<form data-lead-form class="flex flex-1 flex-col gap-9 bg-[#191505] rounded px-[30px] pt-[40px] pb-[30px] shadow-[0_0_17.6px_12px_rgba(0,0,0,0.3)] w-full">
+		<form data-lead-form class="flex flex-1 lg:min-w-[620px] flex-col gap-9 bg-[#191505] rounded px-[40px] pt-[44px] pb-[36px] shadow-[0_0_17.6px_12px_rgba(0,0,0,0.3)] w-full">
 			<div class="flex flex-col gap-5 w-full">
 				<label class="flex flex-col gap-2 w-full">
 					<span class="font-body font-medium text-[14px] text-[#f9f8f6]/80">Nombre</span>
-					<input name="name" type="text" required minlength="2" placeholder="Ingrese su nombre completo" class="h-10 px-[18px] py-2.5 rounded bg-[#383313]/50 border border-[#383313] text-white text-[16px] placeholder:text-[#63605b] focus:border-[#f4b13b] outline-none transition-colors" />
+					<input name="name" type="text" required minlength="2" placeholder="Ingrese su nombre completo" class="h-12 px-[18px] py-3 rounded bg-[#383313]/50 border border-[#383313] text-white text-[16px] placeholder:text-[#63605b] focus:border-[#f4b13b] outline-none transition-colors" />
 				</label>
 				<label class="flex flex-col gap-2 w-full">
 					<span class="font-body font-medium text-[14px] text-[#f9f8f6]/80">Teléfono</span>
-					<input name="phone" type="tel" required minlength="6" placeholder="Ingrese su número telefónico" class="h-10 px-[18px] py-2.5 rounded bg-[#383313]/50 border border-[#383313] text-white text-[16px] placeholder:text-[#63605b] focus:border-[#f4b13b] outline-none transition-colors" />
+					<input name="phone" type="tel" required minlength="6" placeholder="Ingrese su número telefónico" class="h-12 px-[18px] py-3 rounded bg-[#383313]/50 border border-[#383313] text-white text-[16px] placeholder:text-[#63605b] focus:border-[#f4b13b] outline-none transition-colors" />
 				</label>
 				<label class="flex flex-col gap-2 w-full">
 					<span class="font-body font-medium text-[14px] text-[#f9f8f6]/80">Mensaje</span>
