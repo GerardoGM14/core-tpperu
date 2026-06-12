@@ -1,19 +1,25 @@
 import React from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Ico from '../../components/icons';
+import { campaignsApi } from '../../api/campaigns';
+import { settingsApi } from '../../api/settings';
 
-const REMINDERS = [
-  { id: 'R-48',  label: '48 horas antes del tour', when: '-48h', active: true,  sent: 412, opened: 388, template: 'WSP_RECORDATORIO_48H' },
-  { id: 'R-24',  label: '24 horas antes del tour', when: '-24h', active: true,  sent: 412, opened: 401, template: 'WSP_RECORDATORIO_24H' },
-  { id: 'R-12',  label: '12 horas antes del tour', when: '-12h', active: true,  sent: 402, opened: 399, template: 'WSP_RECORDATORIO_12H' },
-  { id: 'R-POST',label: 'Encuesta post-servicio',  when: '+48h', active: true,  sent: 298, opened: 212, template: 'WSP_NPS_POSTSERV' },
+// Tags de segmentación disponibles para la audiencia de una campaña.
+const AUDIENCE_TAGS = [
+  { tag: 'lead-landing', label: 'Leads de la web' },
+  { tag: 'comprador',    label: 'Compradores' },
+  { tag: 'tarapoto',     label: 'Tarapoto' },
+  { tag: 'inactivo-90d', label: 'Inactivos 90d' },
 ];
 
-const CAMPAIGNS = [
-  { id: 'CMP-2026-05-A', name: 'Cyber TPP — extensión 48h', audience: 'Compradores +leads (1,420)',    status: 'enviada',    scheduled: '05 may 17:00', sent: 1420, read: 1210, replied: 182, conv: 91, rev: 41200 },
-  { id: 'CMP-2026-05-B', name: 'Nueva ruta · Carpishuyacu', audience: 'Compradores Tarapoto (612)',     status: 'programada', scheduled: '10 may 09:00', sent: 0,    read: 0,    replied: 0,   conv: 0,  rev: 0 },
-  { id: 'CMP-2026-04-C', name: 'Aviso operativo · Lluvias', audience: 'Reservas próximas 7 días (84)', status: 'enviada',    scheduled: '29 abr 18:30', sent: 84,   read: 84,   replied: 12,  conv: 0,  rev: 0 },
-  { id: 'CMP-2026-04-D', name: 'Reactivación inactivos 90d',audience: 'Inactivos 90d (308)',           status: 'borrador',   scheduled: '—',            sent: 0,    read: 0,    replied: 0,   conv: 0,  rev: 0 },
-];
+const STATUS_PILL = {
+  DRAFT:     { cls: '',     label: 'borrador',   dot: 'var(--muted)' },
+  SCHEDULED: { cls: 'info', label: 'programada', dot: null },
+  RUNNING:   { cls: 'warn', label: 'enviando',   dot: null },
+  COMPLETED: { cls: 'good', label: 'enviada',    dot: null },
+  PAUSED:    { cls: '',     label: 'pausada',    dot: 'var(--muted)' },
+  CANCELLED: { cls: 'bad',  label: 'cancelada',  dot: null },
+};
 
 function PreTripPreview({ when }) {
   const map = {
@@ -25,10 +31,143 @@ function PreTripPreview({ when }) {
   return <div className="bubble bot" style={{ whiteSpace: 'pre-line', maxWidth: '100%' }}>{map[when]}<span className="ts">14:32 ✓✓</span></div>;
 }
 
+// ---------- Modal: crear / editar campaña ----------
+function CampaignModal({ campaign, onClose }) {
+  const qc = useQueryClient();
+  const editing = !!campaign?.id;
+  const [name, setName] = React.useState(campaign?.name || '');
+  const [body, setBody] = React.useState(campaign?.body || '');
+  const [tags, setTags] = React.useState(campaign?.audience?.tags || []);
+  const [scheduledAt, setScheduledAt] = React.useState(campaign?.scheduledAt?.slice(0, 16) || '');
+
+  // Cuenta de destinatarios según los tags seleccionados.
+  const { data: audience } = useQuery({
+    queryKey: ['audience-count', tags],
+    queryFn: () => campaignsApi.audienceCount(tags),
+  });
+  const count = audience?.count ?? 0;
+
+  const save = useMutation({
+    mutationFn: (data) => editing ? campaignsApi.update(campaign.id, data) : campaignsApi.create(data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['campaigns'] }); onClose(); },
+  });
+
+  const toggleTag = (t) => setTags((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]);
+
+  const submit = (e) => {
+    e.preventDefault();
+    if (!name.trim() || !body.trim()) return;
+    save.mutate({
+      name: name.trim(),
+      body: body.trim(),
+      audience: { tags },
+      status: scheduledAt ? 'SCHEDULED' : 'DRAFT',
+      scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : undefined,
+    });
+  };
+
+  return (
+    <div className="m-back" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <form onSubmit={submit} className="m-card" style={{ width: 560, maxWidth: '92vw' }}>
+        <div className="m-h">
+          <h2 className="h2">{editing ? 'Editar campaña' : 'Nueva campaña'}</h2>
+          <button type="button" className="iconbtn" onClick={onClose} style={{ marginLeft: 'auto' }}>✕</button>
+        </div>
+        <div className="m-b" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="field">
+            <label>Nombre de la campaña</label>
+            <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej. Cyber TPP — extensión 48h" autoFocus />
+          </div>
+
+          <div className="field">
+            <label>Mensaje (usa <span className="mono">{'{nombre}'}</span> para personalizar)</label>
+            <textarea className="input" value={body} onChange={(e) => setBody(e.target.value)} style={{ minHeight: 96 }}
+              placeholder="🌿 Hola {nombre}, tenemos una oferta especial para ti..." />
+          </div>
+
+          <div className="field">
+            <label>Audiencia</label>
+            <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+              {AUDIENCE_TAGS.map((a) => (
+                <button type="button" key={a.tag}
+                  className={'btn ghost sm ' + (tags.includes(a.tag) ? 'active' : '')}
+                  onClick={() => toggleTag(a.tag)}>
+                  {a.label}
+                </button>
+              ))}
+            </div>
+            <div className="mono" style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>
+              {tags.length === 0 ? 'Sin filtros → se enviará a TODOS los clientes' : ''} · {count} destinatario{count === 1 ? '' : 's'}
+            </div>
+          </div>
+
+          <div className="field">
+            <label>Programar (opcional)</label>
+            <input className="input" type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} />
+          </div>
+
+          <div className="row between" style={{ marginTop: 4 }}>
+            <button type="button" className="btn ghost" onClick={onClose}>Cancelar</button>
+            <button type="submit" className="btn" disabled={save.isPending || !name.trim() || !body.trim()}>
+              {save.isPending ? 'Guardando…' : (editing ? 'Guardar cambios' : 'Crear campaña')}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 export function Recordatorios() {
   const [tab, setTab] = React.useState('pre-trip');
   const [picked, setPicked] = React.useState('R-24');
-  const r = REMINDERS.find(x => x.id === picked);
+  const [modal, setModal] = React.useState(null); // null | {} (nueva) | campaign (editar)
+  const qc = useQueryClient();
+
+  const { data: campaigns = [], isLoading } = useQuery({
+    queryKey: ['campaigns'],
+    queryFn: campaignsApi.list,
+  });
+
+  const send = useMutation({
+    mutationFn: (id) => campaignsApi.send(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['campaigns'] }),
+  });
+  const remove = useMutation({
+    mutationFn: (id) => campaignsApi.remove(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['campaigns'] }),
+  });
+
+  // ---- Config persistente: recordatorios pre-trip + post-servicio ----
+  const { data: pretripCfg } = useQuery({ queryKey: ['settings', 'reminders.pretrip'], queryFn: () => settingsApi.get('reminders.pretrip') });
+  const { data: postCfg } = useQuery({ queryKey: ['settings', 'reminders.postservice'], queryFn: () => settingsApi.get('reminders.postservice') });
+
+  const [rules, setRules] = React.useState([]);
+  const [post, setPost] = React.useState(null);
+
+  React.useEffect(() => { if (pretripCfg?.value?.rules) setRules(pretripCfg.value.rules); }, [pretripCfg]);
+  React.useEffect(() => { if (postCfg?.value) setPost(postCfg.value); }, [postCfg]);
+
+  const savePretrip = useMutation({
+    mutationFn: (value) => settingsApi.set('reminders.pretrip', value),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'reminders.pretrip'] }),
+  });
+  const savePost = useMutation({
+    mutationFn: (value) => settingsApi.set('reminders.postservice', value),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'reminders.postservice'] }),
+  });
+
+  // Alterna una regla pre-trip y persiste de inmediato.
+  const toggleRule = (id) => {
+    const next = rules.map((x) => x.id === id ? { ...x, active: !x.active } : x);
+    setRules(next);
+    savePretrip.mutate({ rules: next });
+  };
+
+  // Regla seleccionada para la vista previa (cae a la primera si la elegida no existe).
+  const r = rules.find((x) => x.id === picked) || rules[0] || { when: '-24h', label: '—', template: '' };
+
+  const fmt = (iso) => iso ? new Date(iso).toLocaleString('es-PE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
 
   return (
     <div className="view">
@@ -39,7 +178,7 @@ export function Recordatorios() {
         </div>
         <div className="row" style={{ gap: 8 }}>
           <button className="btn ghost"><Ico.eye />Programación</button>
-          <button className="btn"><Ico.plus />Nueva campaña</button>
+          <button className="btn" onClick={() => setModal({})}><Ico.plus />Nueva campaña</button>
         </div>
       </div>
 
@@ -49,7 +188,7 @@ export function Recordatorios() {
         <div className="stat"><div className="label">Recordatorios hoy</div><div className="value">38</div><div className="delta"><span className="mono">14 enviados · 24 programados</span></div></div>
         <div className="stat"><div className="label">Tasa de lectura</div><div className="value">96<span style={{ fontSize: 14, color: 'var(--muted)' }}>%</span></div><div className="delta up"><Ico.up />+0.8 pts</div></div>
         <div className="stat"><div className="label">NPS post-servicio (30d)</div><div className="value">8.7</div><div className="delta up"><Ico.up />+0.3</div></div>
-        <div className="stat"><div className="label">Ingresos por campañas (mes)</div><div className="value">S/ 41,200</div><div className="delta up"><Ico.up />+24%</div></div>
+        <div className="stat"><div className="label">Campañas activas</div><div className="value">{campaigns.filter((c) => c.status === 'COMPLETED' || c.status === 'SCHEDULED').length}</div><div className="delta"><span className="mono">{campaigns.length} en total</span></div></div>
       </div>
 
       <div className="spacer-m" />
@@ -90,16 +229,19 @@ export function Recordatorios() {
               <table className="t">
                 <thead><tr><th>Disparo</th><th>Plantilla</th><th style={{ textAlign: 'right' }}>Enviados</th><th style={{ textAlign: 'right' }}>Leídos</th><th>Estado</th><th></th></tr></thead>
                 <tbody>
-                  {REMINDERS.filter(x => x.id !== 'R-POST').map(x => (
+                  {rules.map(x => (
                     <tr key={x.id} className={picked === x.id ? 'selected' : ''} onClick={() => setPicked(x.id)} style={{ cursor: 'pointer' }}>
                       <td><div style={{ fontSize: 12, fontWeight: 500 }}>{x.label}</div><div className="cell-id">{x.when}</div></td>
                       <td className="cell-id">{x.template}</td>
-                      <td className="cell-num" style={{ textAlign: 'right' }}>{x.sent}</td>
-                      <td className="cell-num" style={{ textAlign: 'right', color: 'var(--good)' }}>{Math.round((x.opened / x.sent) * 100)}%</td>
-                      <td><span className={'switch ' + (x.active ? 'on' : '')} /></td>
-                      <td><button className="iconbtn"><Ico.pencil /></button></td>
+                      <td className="cell-num" style={{ textAlign: 'right', color: 'var(--muted)' }}>—</td>
+                      <td className="cell-num" style={{ textAlign: 'right', color: 'var(--muted)' }}>—</td>
+                      <td onClick={(e) => { e.stopPropagation(); toggleRule(x.id); }} style={{ cursor: 'pointer' }} title={x.active ? 'Desactivar' : 'Activar'}>
+                        <span className={'switch ' + (x.active ? 'on' : '')} />
+                      </td>
+                      <td><span className="cell-id">{x.active ? 'activo' : 'inactivo'}</span></td>
                     </tr>
                   ))}
+                  {rules.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--muted)', padding: 18 }}>Cargando recordatorios…</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -135,34 +277,46 @@ export function Recordatorios() {
       {tab === 'post' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 12 }}>
           <div className="card">
-            <div className="card-h"><h2 className="h2">Comunicación post-servicio</h2><span className="pill good"><span className="d" />activa</span></div>
+            <div className="card-h">
+              <h2 className="h2">Comunicación post-servicio</h2>
+              <span className={'pill ' + (post?.active ? 'good' : '')}><span className="d" style={post?.active ? undefined : { background: 'var(--muted)' }} />{post?.active ? 'activa' : 'inactiva'}</span>
+            </div>
             <div className="card-b" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div className="field"><label>Disparador</label>
-                <select className="input"><option>Fecha de fin de tour + 48 horas</option><option>Inmediato al cierre del tour</option></select>
-              </div>
-              <div className="field"><label>Mensaje de agradecimiento</label>
-                <textarea className="input" defaultValue="🙏 Hola {nombre}, esperamos que hayas disfrutado *{paquete}*." style={{ minHeight: 80 }} />
-              </div>
-              <div className="field"><label>Encuesta NPS</label>
-                <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
-                    <button key={n} className="btn ghost sm" style={{ minWidth: 34 }}>{n}</button>
-                  ))}
+              {!post && <div style={{ color: 'var(--muted)', fontSize: 12 }}>Cargando configuración…</div>}
+              {post && <>
+                <div className="field"><label>Disparador</label>
+                  <select className="input" value={post.trigger} onChange={(e) => setPost({ ...post, trigger: e.target.value })}>
+                    <option>Fecha de fin de tour + 48 horas</option>
+                    <option>Inmediato al cierre del tour</option>
+                  </select>
                 </div>
-              </div>
-              <div className="field"><label>Cupón de fidelización (opcional)</label>
-                <div className="row" style={{ gap: 6 }}>
-                  <input className="input mono" defaultValue="VUELVE15" style={{ flex: 1 }} />
-                  <input className="input" defaultValue="15% OFF en próxima compra" style={{ flex: 2 }} />
+                <div className="field"><label>Mensaje de agradecimiento</label>
+                  <textarea className="input" value={post.thankYou || ''} onChange={(e) => setPost({ ...post, thankYou: e.target.value })} style={{ minHeight: 80 }} />
                 </div>
-              </div>
-              <div className="field"><label>Si NPS ≥ 9 → pedir reseña</label>
-                <input className="input" defaultValue="https://g.page/tpp-peru/review" />
-              </div>
+                <div className="field"><label>Cupón de fidelización (opcional)</label>
+                  <div className="row" style={{ gap: 6 }}>
+                    <input className="input mono" value={post.coupon?.code || ''} onChange={(e) => setPost({ ...post, coupon: { ...post.coupon, code: e.target.value } })} style={{ flex: 1 }} />
+                    <input className="input" value={post.coupon?.label || ''} onChange={(e) => setPost({ ...post, coupon: { ...post.coupon, label: e.target.value } })} style={{ flex: 2 }} />
+                  </div>
+                </div>
+                <div className="field"><label>Si NPS ≥ 9 → pedir reseña</label>
+                  <input className="input" value={post.reviewUrl || ''} onChange={(e) => setPost({ ...post, reviewUrl: e.target.value })} />
+                </div>
+                <div className="field"><label>Estado</label>
+                  <label className="row" style={{ gap: 8, cursor: 'pointer' }}>
+                    <span className={'switch ' + (post.active ? 'on' : '')} onClick={() => setPost({ ...post, active: !post.active })} />
+                    <span style={{ fontSize: 12 }}>{post.active ? 'Activa' : 'Inactiva'}</span>
+                  </label>
+                </div>
+                <div className="row between" style={{ marginTop: 4 }}>
+                  <span className="cell-id">{savePost.isSuccess ? 'Guardado ✓' : savePost.isPending ? 'Guardando…' : ''}</span>
+                  <button className="btn" onClick={() => savePost.mutate(post)} disabled={savePost.isPending}><Ico.send />Guardar configuración</button>
+                </div>
+              </>}
             </div>
           </div>
           <div className="card">
-            <div className="card-h"><h2 className="h2">Resultados últimos 30 días</h2></div>
+            <div className="card-h"><h2 className="h2">Resultados últimos 30 días</h2><span className="cell-id">ejemplo</span></div>
             <div className="card-b">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', rowGap: 10, fontSize: 12 }}>
                 <span style={{ color: 'var(--muted)' }}>Encuestas enviadas</span><span className="mono">298</span>
@@ -181,35 +335,55 @@ export function Recordatorios() {
           <div className="card-h">
             <h2 className="h2">Campañas masivas</h2>
             <div style={{ flex: 1 }} />
-            <div className="topbar-search" style={{ width: 200 }}><Ico.search /><input placeholder="Buscar campaña..." /></div>
-            <button className="btn"><Ico.plus />Nueva campaña</button>
+            <button className="btn" onClick={() => setModal({})}><Ico.plus />Nueva campaña</button>
           </div>
           <div className="card-b flush">
             <table className="t">
-              <thead><tr><th>ID</th><th>Campaña</th><th>Audiencia</th><th>Programada</th><th style={{ textAlign: 'right' }}>Enviados</th><th style={{ textAlign: 'right' }}>Leídos</th><th style={{ textAlign: 'right' }}>Conv.</th><th style={{ textAlign: 'right' }}>Ingresos</th><th>Estado</th></tr></thead>
+              <thead><tr><th>Campaña</th><th>Audiencia</th><th>Programada</th><th style={{ textAlign: 'right' }}>Enviados</th><th style={{ textAlign: 'right' }}>Fallidos</th><th>Estado</th><th></th></tr></thead>
               <tbody>
-                {CAMPAIGNS.map(c => (
-                  <tr key={c.id} style={{ cursor: 'pointer' }}>
-                    <td><span className="cell-id">{c.id}</span></td>
-                    <td><div style={{ fontSize: 12, fontWeight: 500 }}>{c.name}</div></td>
-                    <td><span className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>{c.audience}</span></td>
-                    <td className="cell-id">{c.scheduled}</td>
-                    <td className="cell-num" style={{ textAlign: 'right' }}>{c.sent.toLocaleString()}</td>
-                    <td className="cell-num" style={{ textAlign: 'right', color: c.read > 0 ? 'var(--good)' : 'var(--muted)' }}>{c.read > 0 ? Math.round((c.read / c.sent) * 100) + '%' : '—'}</td>
-                    <td className="cell-num" style={{ textAlign: 'right' }}>{c.conv > 0 ? c.conv : '—'}</td>
-                    <td className="cell-num" style={{ textAlign: 'right', fontWeight: c.rev > 0 ? 500 : 400 }}>{c.rev > 0 ? 'S/ ' + c.rev.toLocaleString() : '—'}</td>
-                    <td>
-                      {c.status === 'enviada'    && <span className="pill good"><span className="d" />enviada</span>}
-                      {c.status === 'programada' && <span className="pill info"><span className="d" />programada</span>}
-                      {c.status === 'borrador'   && <span className="pill"><span className="d" style={{ background: 'var(--muted)' }} />borrador</span>}
-                    </td>
-                  </tr>
-                ))}
+                {isLoading && <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--muted)', padding: 20 }}>Cargando campañas…</td></tr>}
+                {!isLoading && campaigns.length === 0 && (
+                  <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--muted)', padding: 24 }}>
+                    Aún no hay campañas. Crea la primera con “Nueva campaña”.
+                  </td></tr>
+                )}
+                {campaigns.map(c => {
+                  const pill = STATUS_PILL[c.status] || STATUS_PILL.DRAFT;
+                  const tags = c.audience?.tags || [];
+                  const stats = c.stats || {};
+                  const canSend = c.status !== 'RUNNING';
+                  return (
+                    <tr key={c.id}>
+                      <td>
+                        <div style={{ fontSize: 12, fontWeight: 500 }}>{c.name}</div>
+                        {c.body && <div className="cell-id" style={{ maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.body}</div>}
+                      </td>
+                      <td><span className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>{tags.length ? tags.join(', ') : 'Todos'}</span></td>
+                      <td className="cell-id">{fmt(c.scheduledAt)}</td>
+                      <td className="cell-num" style={{ textAlign: 'right' }}>{stats.sent ?? '—'}</td>
+                      <td className="cell-num" style={{ textAlign: 'right', color: stats.failed ? 'var(--bad)' : 'var(--muted)' }}>{stats.failed ?? '—'}</td>
+                      <td><span className={'pill ' + pill.cls}><span className="d" style={pill.dot ? { background: pill.dot } : undefined} />{pill.label}</span></td>
+                      <td>
+                        <div className="row" style={{ gap: 4, justifyContent: 'flex-end' }}>
+                          <button className="btn ghost sm" disabled={!canSend || send.isPending}
+                            onClick={() => { if (confirm(`¿Enviar la campaña "${c.name}" ahora?`)) send.mutate(c.id); }}>
+                            <Ico.send />{send.isPending && send.variables === c.id ? 'Enviando…' : 'Enviar'}
+                          </button>
+                          <button className="iconbtn" title="Editar" onClick={() => setModal(c)}><Ico.pencil /></button>
+                          <button className="iconbtn" title="Eliminar"
+                            onClick={() => { if (confirm('¿Eliminar esta campaña?')) remove.mutate(c.id); }}><Ico.trash /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </div>
       )}
+
+      {modal && <CampaignModal campaign={modal.id ? modal : null} onClose={() => setModal(null)} />}
     </div>
   );
 }

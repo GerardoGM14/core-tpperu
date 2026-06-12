@@ -385,6 +385,7 @@ model Campaign {
   id           String         @id @default(cuid())
   name         String
   description  String?
+  body         String?                          // mensaje a enviar (soporta {nombre})
   templateId   String?
   status       CampaignStatus @default(DRAFT)
   scheduledAt  DateTime?
@@ -466,4 +467,11 @@ model WhatsappSession {
   metadata        Json?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+// Configuración de la app por clave (settings genéricos: pre-trip, post-servicio, etc.)
+model Setting {
+  key       String   @id                              // p.ej. "reminders.pretrip"
+  value     Json                                       // estructura libre por clave
+  updatedAt DateTime @updatedAt
 }

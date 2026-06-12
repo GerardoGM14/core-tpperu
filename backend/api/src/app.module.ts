@@ -17,6 +17,7 @@ import { WhatsappBridgeModule } from './whatsapp-bridge/whatsapp-bridge.module';
 import { QueuesModule } from './queues/queues.module';
 import { PublicModule } from './public/public.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { SettingsModule } from './settings/settings.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     QueuesModule,
     PublicModule,
     DashboardModule,
+    SettingsModule,
   ],
   controllers: [HealthController],
 })
