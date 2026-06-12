@@ -1,3 +1,4 @@
+import { PartialType } from '@nestjs/mapped-types';
 import { IsArray, IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class CreateCustomerDto {
@@ -21,4 +22,4 @@ export class CreateCustomerDto {
   tags?: string[];
 }
 
-export class UpdateCustomerDto extends CreateCustomerDto {}
+export class UpdateCustomerDto extends PartialType(CreateCustomerDto) {}

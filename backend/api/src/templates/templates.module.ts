@@ -1,3 +1,4 @@
+import { PartialType } from '@nestjs/mapped-types';
 import { Module, Body, Controller, Delete, Get, Injectable, NotFoundException, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { IsArray, IsEnum, IsOptional, IsString } from 'class-validator';
@@ -12,7 +13,7 @@ class CreateTemplateDto {
   @IsOptional() @IsString() language?: string;
   @IsOptional() @IsEnum(TemplateStatus) status?: TemplateStatus;
 }
-class UpdateTemplateDto extends CreateTemplateDto {}
+class UpdateTemplateDto extends PartialType(CreateTemplateDto) {}
 
 @Injectable()
 class TemplatesService {

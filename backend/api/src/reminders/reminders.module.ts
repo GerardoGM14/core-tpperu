@@ -1,3 +1,4 @@
+import { PartialType } from '@nestjs/mapped-types';
 import { Module, Body, Controller, Delete, Get, Injectable, NotFoundException, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { IsDateString, IsEnum, IsOptional, IsString } from 'class-validator';
@@ -12,7 +13,7 @@ class CreateReminderDto {
   @IsDateString() scheduledAt: string;
   @IsOptional() @IsEnum(ReminderStatus) status?: ReminderStatus;
 }
-class UpdateReminderDto extends CreateReminderDto {}
+class UpdateReminderDto extends PartialType(CreateReminderDto) {}
 
 @Injectable()
 class RemindersService {
@@ -30,9 +31,10 @@ class RemindersService {
   }
   async update(id: string, dto: UpdateReminderDto) {
     await this.findOne(id);
+    const { scheduledAt, ...rest } = dto;
     return this.prisma.reminder.update({
       where: { id },
-      data: { ...dto, scheduledAt: new Date(dto.scheduledAt) },
+      data: { ...rest, scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined },
     });
   }
   async remove(id: string) {

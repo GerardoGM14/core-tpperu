@@ -17,7 +17,19 @@ class CreateOrderDto {
   @IsOptional() @IsInt() @Min(0) paidCents?: number;
   @IsOptional() @IsString() notes?: string;
 }
-class UpdateOrderDto extends CreateOrderDto {}
+// Update parcial: TODOS los campos opcionales (un PATCH no exige reenviar todo).
+class UpdateOrderDto {
+  @IsOptional() @IsString() code?: string;
+  @IsOptional() @IsString() customerId?: string;
+  @IsOptional() @IsString() packageId?: string;
+  @IsOptional() @IsEnum(OrderStatus) status?: OrderStatus;
+  @IsOptional() @IsEnum(OrderChannel) channel?: OrderChannel;
+  @IsOptional() @IsDateString() travelDate?: string;
+  @IsOptional() @IsInt() @Min(1) pax?: number;
+  @IsOptional() @IsInt() @Min(0) totalCents?: number;
+  @IsOptional() @IsInt() @Min(0) paidCents?: number;
+  @IsOptional() @IsString() notes?: string;
+}
 
 @Injectable()
 class OrdersService {

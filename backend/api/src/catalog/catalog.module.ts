@@ -1,3 +1,4 @@
+import { PartialType } from '@nestjs/mapped-types';
 import { Module } from '@nestjs/common';
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards, Injectable, NotFoundException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
@@ -24,7 +25,7 @@ class CreatePackageDto {
   @IsOptional() @IsArray() @IsString({ each: true }) includes?: string[];
   @IsOptional() @IsEnum(PackageStatus) status?: PackageStatus;
 }
-class UpdatePackageDto extends CreatePackageDto {}
+class UpdatePackageDto extends PartialType(CreatePackageDto) {}
 
 @Injectable()
 class CatalogService {

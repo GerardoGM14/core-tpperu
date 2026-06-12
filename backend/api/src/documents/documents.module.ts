@@ -1,3 +1,4 @@
+import { PartialType } from '@nestjs/mapped-types';
 import { Module, Body, Controller, Delete, Get, Injectable, NotFoundException, Param, Patch, Post, Res, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Response } from 'express';
@@ -21,7 +22,7 @@ class CreateDocumentDto {
   @IsOptional() @IsString() mimeType?: string;
   @IsOptional() @IsBoolean() isActive?: boolean;
 }
-class UpdateDocumentDto extends CreateDocumentDto {}
+class UpdateDocumentDto extends PartialType(CreateDocumentDto) {}
 
 class UploadDocumentDto {
   @IsString() data: string;       // base64
