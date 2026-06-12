@@ -1,55 +1,98 @@
 import React from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Ico from '../../components/icons';
-import { TRAVESIA_DATA } from '../../data/travesia';
-
-const { flows } = TRAVESIA_DATA;
-
-const initialNodes = [
-  { id: 'n1', type: 'trigger', x: 40,   y: 60,  title: 'Disparador',       body: 'Carrito sin pago > 60 minutos' },
-  { id: 'n2', type: 'delay',   x: 320,  y: 60,  title: 'Esperar',          body: '1 hora' },
-  { id: 'n3', type: 'message', x: 600,  y: 60,  title: 'Mensaje WhatsApp', body: 'Hola {nombre} 🌿 Veo que dejaste *{paquete}* en tu maleta de viaje. ¿Te ayudo a finalizar la reserva?' },
-  { id: 'n4', type: 'cond',    x: 880,  y: 60,  title: 'Condición',        body: '¿Respondió en 30 min?' },
-  { id: 'n5', type: 'message', x: 1160, y: -40, title: 'Mensaje WhatsApp', body: '¡Genial! Te envío el link de pago seguro con 5% extra de descuento.' },
-  { id: 'n6', type: 'action',  x: 1160, y: 130, title: 'Asignar agente',   body: 'Asignar a Camila · cola "Recuperación"' },
-  { id: 'n7', type: 'message', x: 1160, y: 280, title: 'Mensaje WhatsApp', body: 'No te preocupes, te dejo este código *VUELVE10* válido por 24 h ⏳' },
-];
-
-const initialEdges = [
-  { from: 'n1', to: 'n2' },
-  { from: 'n2', to: 'n3' },
-  { from: 'n3', to: 'n4' },
-  { from: 'n4', to: 'n5', kind: 'alt' },
-  { from: 'n4', to: 'n6', kind: 'alt2' },
-  { from: 'n4', to: 'n7' },
-];
+import { flowsApi } from '../../api/flows';
 
 const NODE_W = 240;
 const NODE_H = 110;
+
+// Tipos del backend (FlowNodeType) ↔ tipo visual del canvas.
+const TYPE_FROM_API = { TRIGGER: 'trigger', MESSAGE: 'message', CONDITION: 'cond', ACTION: 'action', DELAY: 'delay' };
+const TYPE_TO_API = { trigger: 'TRIGGER', message: 'MESSAGE', cond: 'CONDITION', action: 'ACTION', delay: 'DELAY' };
+
+// Plantilla de canvas para un flujo nuevo (un disparador inicial).
+const STARTER_NODES = [
+  { key: 'n1', type: 'trigger', posX: 60, posY: 80, title: 'Disparador', body: 'Configura cuándo se dispara este flujo' },
+];
 
 function bezier(x1, y1, x2, y2) {
   const dx = Math.max(40, Math.abs(x2 - x1) / 2);
   return `M${x1},${y1} C${x1 + dx},${y1} ${x2 - dx},${y2} ${x2},${y2}`;
 }
 
+const typeMeta = {
+  trigger: { ico: <Ico.trigger />, label: 'Disparador' },
+  message: { ico: <Ico.wa />,      label: 'Mensaje' },
+  cond:    { ico: <Ico.branch />,  label: 'Condición' },
+  action:  { ico: <Ico.bolt />,    label: 'Acción' },
+  delay:   { ico: <Ico.clock />,   label: 'Esperar' },
+};
+
+const STATUS_PILL = {
+  ACTIVE:   { cls: 'good', label: 'activo' },
+  DRAFT:    { cls: '',     label: 'borrador' },
+  PAUSED:   { cls: 'warn', label: 'pausado' },
+  ARCHIVED: { cls: '',     label: 'archivado' },
+};
+
+let keyCounter = 100;
+const nextKey = () => 'n' + (++keyCounter);
+
 export default function FlowBuilder() {
-  const [selected, setSelected] = React.useState('n3');
-  const [nodes, setNodes] = React.useState(initialNodes);
+  const qc = useQueryClient();
+  const [activeId, setActiveId] = React.useState(null);
+  const [selected, setSelected] = React.useState(null);
+  const [nodes, setNodes] = React.useState([]);
+  const [edges, setEdges] = React.useState([]);
+  const [dirty, setDirty] = React.useState(false);
   const [drag, setDrag] = React.useState(null);
   const canvasRef = React.useRef(null);
-  const [activeFlow, setActiveFlow] = React.useState('FLOW-01');
 
-  const onMouseDown = (e, id) => {
+  // Lista de flujos (sidebar)
+  const { data: flows = [], isLoading: loadingList } = useQuery({ queryKey: ['flows'], queryFn: flowsApi.list });
+
+  // Selección inicial: primer flujo de la lista
+  React.useEffect(() => {
+    if (!activeId && flows.length) setActiveId(flows[0].id);
+  }, [flows, activeId]);
+
+  // Detalle del flujo activo (incluye nodos + edges)
+  const { data: flow } = useQuery({
+    queryKey: ['flow', activeId],
+    queryFn: () => flowsApi.get(activeId),
+    enabled: !!activeId,
+  });
+
+  // Cargar el canvas del flujo en el estado local cuando llega del backend
+  React.useEffect(() => {
+    if (!flow) return;
+    const ns = (flow.nodes || []).map((n) => ({
+      key: n.id, type: TYPE_FROM_API[n.type] || 'message', title: n.title, body: n.body || '', posX: n.posX, posY: n.posY,
+    }));
+    const es = (flow.edges || []).map((e) => {
+      const from = (flow.nodes || []).find((n) => n.id === e.fromNodeId);
+      const to = (flow.nodes || []).find((n) => n.id === e.toNodeId);
+      return from && to ? { from: from.id, to: to.id, kind: e.kind || undefined } : null;
+    }).filter(Boolean);
+    setNodes(ns.length ? ns : STARTER_NODES);
+    setEdges(es);
+    setSelected(ns[0]?.key || null);
+    setDirty(false);
+  }, [flow]);
+
+  // ---- Drag de nodos ----
+  const onMouseDown = (e, key) => {
     if (e.target.closest('.bnode-port')) return;
-    const n = nodes.find(x => x.id === id);
-    setSelected(id);
-    setDrag({ id, ox: e.clientX - n.x, oy: e.clientY - n.y });
+    const n = nodes.find((x) => x.key === key);
+    setSelected(key);
+    setDrag({ key, ox: e.clientX - n.posX, oy: e.clientY - n.posY });
     e.preventDefault();
   };
-
   React.useEffect(() => {
     if (!drag) return;
     const onMove = (e) => {
-      setNodes(prev => prev.map(n => n.id === drag.id ? { ...n, x: e.clientX - drag.ox, y: e.clientY - drag.oy } : n));
+      setNodes((prev) => prev.map((n) => n.key === drag.key ? { ...n, posX: e.clientX - drag.ox, posY: e.clientY - drag.oy } : n));
+      setDirty(true);
     };
     const onUp = () => setDrag(null);
     window.addEventListener('mousemove', onMove);
@@ -57,188 +100,198 @@ export default function FlowBuilder() {
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
   }, [drag]);
 
-  const sel = nodes.find(n => n.id === selected);
+  // ---- Mutaciones ----
+  const createFlow = useMutation({
+    mutationFn: () => flowsApi.create({
+      code: 'FLOW-' + Date.now().toString(36).toUpperCase(),
+      name: 'Nuevo flujo',
+      triggerType: 'MANUAL',
+      status: 'DRAFT',
+    }),
+    onSuccess: (f) => { qc.invalidateQueries({ queryKey: ['flows'] }); setActiveId(f.id); },
+  });
 
-  const typeMeta = {
-    trigger: { ico: <Ico.trigger />, label: 'Disparador' },
-    message: { ico: <Ico.wa />,      label: 'Mensaje' },
-    cond:    { ico: <Ico.branch />,  label: 'Condición' },
-    action:  { ico: <Ico.bolt />,    label: 'Acción' },
-    delay:   { ico: <Ico.clock />,   label: 'Esperar' },
+  const saveCanvas = useMutation({
+    mutationFn: () => flowsApi.saveCanvas(activeId, { nodes, edges }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['flow', activeId] }); setDirty(false); },
+  });
+
+  const toggleStatus = useMutation({
+    mutationFn: (status) => flowsApi.update(activeId, {
+      code: flow.code, name: flow.name, triggerType: flow.triggerType, status,
+    }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['flows'] }); qc.invalidateQueries({ queryKey: ['flow', activeId] }); },
+  });
+
+  const removeFlow = useMutation({
+    mutationFn: (id) => flowsApi.remove(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['flows'] }); setActiveId(null); },
+  });
+
+  // ---- Edición de nodos ----
+  const addNode = (type) => {
+    const key = nextKey();
+    setNodes((prev) => [...prev, { key, type, title: typeMeta[type].label, body: '', posX: 80 + prev.length * 30, posY: 240 }]);
+    setSelected(key);
+    setDirty(true);
   };
+  const updateNode = (key, patch) => {
+    setNodes((prev) => prev.map((n) => n.key === key ? { ...n, ...patch } : n));
+    setDirty(true);
+  };
+  const deleteNode = (key) => {
+    setNodes((prev) => prev.filter((n) => n.key !== key));
+    setEdges((prev) => prev.filter((e) => e.from !== key && e.to !== key));
+    setSelected(null);
+    setDirty(true);
+  };
+
+  const sel = nodes.find((n) => n.key === selected);
+  const active = flows.find((f) => f.id === activeId);
+  const pill = STATUS_PILL[active?.status] || STATUS_PILL.DRAFT;
 
   return (
     <div className="view no-pad" style={{ display: 'grid', gridTemplateColumns: '260px 1fr 320px', height: '100%' }}>
+      {/* Sidebar: lista de flujos */}
       <div style={{ borderRight: '1px solid var(--hair)', background: 'var(--paper)', overflow: 'auto' }}>
         <div style={{ padding: '14px 14px 10px', borderBottom: '1px solid var(--hair)' }}>
           <div className="row between">
             <h2 className="h2">Flujos</h2>
-            <button className="iconbtn"><Ico.plus /></button>
-          </div>
-          <div className="topbar-search" style={{ marginTop: 10, width: '100%' }}>
-            <Ico.search /><input placeholder="Buscar flujo..." />
+            <button className="iconbtn" title="Nuevo flujo" onClick={() => createFlow.mutate()}><Ico.plus /></button>
           </div>
         </div>
-        <div className="sb-section" style={{ padding: '12px 14px 4px' }}>Activos</div>
-        {flows.filter(f => f.active).map(f => (
-          <div key={f.id} onClick={() => setActiveFlow(f.id)} style={{
-            padding: '10px 14px', borderBottom: '1px solid var(--hair)', cursor: 'pointer',
-            background: activeFlow === f.id ? 'var(--surface)' : 'transparent',
-            borderRight: activeFlow === f.id ? '2px solid var(--accent)' : '0',
-            marginRight: activeFlow === f.id ? -1 : 0,
-          }}>
-            <div style={{ fontSize: 12, fontWeight: 500 }}>{f.name}</div>
-            <div style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>{f.trigger}</div>
-            <div className="row" style={{ marginTop: 6, gap: 6 }}>
-              <span className="pill"><span className="d" style={{ background: 'var(--good)' }} />activo</span>
-              <span className="pill mono" style={{ fontSize: 10 }}>{f.sent} env.</span>
-              <span className="pill mono" style={{ fontSize: 10, color: 'var(--good)' }}>{Math.round((f.conv / f.sent) * 100)}%</span>
+        {loadingList && <div style={{ padding: 14, color: 'var(--muted)', fontSize: 12 }}>Cargando…</div>}
+        {!loadingList && flows.length === 0 && (
+          <div style={{ padding: 16, color: 'var(--muted)', fontSize: 12 }}>
+            No hay flujos. Crea el primero con <Ico.plus />.
+          </div>
+        )}
+        {flows.map((f) => {
+          const fp = STATUS_PILL[f.status] || STATUS_PILL.DRAFT;
+          return (
+            <div key={f.id} onClick={() => setActiveId(f.id)} style={{
+              padding: '10px 14px', borderBottom: '1px solid var(--hair)', cursor: 'pointer',
+              background: activeId === f.id ? 'var(--surface)' : 'transparent',
+              borderRight: activeId === f.id ? '2px solid var(--accent)' : '0',
+              opacity: f.status === 'ACTIVE' ? 1 : 0.75,
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 500 }}>{f.name}</div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>{f.code} · {f.triggerType}</div>
+              <div className="row" style={{ marginTop: 6, gap: 6 }}>
+                <span className={'pill ' + fp.cls}><span className="d" />{fp.label}</span>
+                <span className="pill mono" style={{ fontSize: 10 }}>{f._count?.nodes ?? 0} nodos</span>
+              </div>
             </div>
-          </div>
-        ))}
-        <div className="sb-section" style={{ padding: '12px 14px 4px' }}>Inactivos</div>
-        {flows.filter(f => !f.active).map(f => (
-          <div key={f.id} onClick={() => setActiveFlow(f.id)} style={{ padding: '10px 14px', borderBottom: '1px solid var(--hair)', cursor: 'pointer', opacity: 0.7 }}>
-            <div style={{ fontSize: 12, fontWeight: 500 }}>{f.name}</div>
-            <div style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>{f.trigger}</div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
+      {/* Canvas */}
       <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--hair)', background: 'var(--paper)', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div>
-            <div className="h2">Carrito abandonado · 1h</div>
-            <div className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>FLOW-01 · última edición hace 12 min · publicado</div>
+          <div style={{ minWidth: 0 }}>
+            <div className="h2" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{active?.name || 'Selecciona un flujo'}</div>
+            <div className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>{active ? `${active.code} · ${dirty ? 'cambios sin guardar' : 'guardado'}` : '—'}</div>
           </div>
           <div style={{ flex: 1 }} />
-          <span className="pill good"><span className="d" />activo</span>
-          <button className="btn ghost"><Ico.eye />Probar</button>
-          <button className="btn ghost"><Ico.copy />Duplicar</button>
-          <button className="btn"><Ico.send />Publicar cambios</button>
+          {active && <span className={'pill ' + pill.cls}><span className="d" />{pill.label}</span>}
+          {active && active.status !== 'ACTIVE' && (
+            <button className="btn ghost" onClick={() => toggleStatus.mutate('ACTIVE')} disabled={toggleStatus.isPending}>Activar</button>
+          )}
+          {active && active.status === 'ACTIVE' && (
+            <button className="btn ghost" onClick={() => toggleStatus.mutate('PAUSED')} disabled={toggleStatus.isPending}>Pausar</button>
+          )}
+          {active && (
+            <button className="iconbtn" title="Eliminar flujo" onClick={() => { if (confirm('¿Eliminar este flujo?')) removeFlow.mutate(activeId); }}><Ico.trash /></button>
+          )}
+          <button className="btn" onClick={() => saveCanvas.mutate()} disabled={!active || !dirty || saveCanvas.isPending}>
+            <Ico.send />{saveCanvas.isPending ? 'Guardando…' : 'Publicar cambios'}
+          </button>
         </div>
 
         <div className="builder" ref={canvasRef} style={{ flex: 1, minHeight: 0 }}>
           <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
-            {initialEdges.map((e, i) => {
-              const a = nodes.find(n => n.id === e.from);
-              const b = nodes.find(n => n.id === e.to);
+            {edges.map((e, i) => {
+              const a = nodes.find((n) => n.key === e.from);
+              const b = nodes.find((n) => n.key === e.to);
               if (!a || !b) return null;
-              let x1 = a.x + NODE_W, y1 = a.y + NODE_H / 2;
-              let x2 = b.x, y2 = b.y + NODE_H / 2;
-              if (e.kind === 'alt')  y1 = a.y + NODE_H - 14;
-              if (e.kind === 'alt2') y1 = a.y + 14;
+              let x1 = a.posX + NODE_W, y1 = a.posY + NODE_H / 2;
+              const x2 = b.posX, y2 = b.posY + NODE_H / 2;
+              if (e.kind === 'alt')  y1 = a.posY + NODE_H - 14;
+              if (e.kind === 'alt2') y1 = a.posY + 14;
               return <path key={i} d={bezier(x1, y1, x2, y2)} className={'bedge ' + (e.kind || '')} />;
             })}
           </svg>
 
-          {nodes.map(n => {
-            const meta = typeMeta[n.type];
+          {nodes.map((n) => {
+            const meta = typeMeta[n.type] || typeMeta.message;
             return (
-              <div key={n.id}
-                className={'bnode ' + n.type + (selected === n.id ? ' selected' : '')}
-                style={{ left: n.x, top: n.y, width: NODE_W }}
-                onMouseDown={(e) => onMouseDown(e, n.id)}>
+              <div key={n.key}
+                className={'bnode ' + n.type + (selected === n.key ? ' selected' : '')}
+                style={{ left: n.posX, top: n.posY, width: NODE_W }}
+                onMouseDown={(e) => onMouseDown(e, n.key)}>
                 <div className="bnode-h">
                   {meta.ico}
                   <span>{meta.label}</span>
-                  <span className="mono" style={{ marginLeft: 'auto', color: 'var(--muted-2)' }}>{n.id}</span>
+                  <span className="mono" style={{ marginLeft: 'auto', color: 'var(--muted-2)' }}>{n.key}</span>
                 </div>
                 <div className="bnode-b">
-                  {n.type === 'message' ? (
-                    <div className="preview">{n.body}</div>
-                  ) : (
-                    <div style={{ fontSize: 12, color: 'var(--ink-2)' }}>{n.body}</div>
-                  )}
+                  {n.type === 'message'
+                    ? <div className="preview">{n.body || 'Mensaje vacío…'}</div>
+                    : <div style={{ fontSize: 12, color: 'var(--ink-2)' }}>{n.body || n.title}</div>}
                 </div>
                 {n.type !== 'trigger' && <span className="bnode-port in" />}
-                {n.type === 'cond' ? (
-                  <>
-                    <span className="bnode-port out alt2" />
-                    <span className="bnode-port out" />
-                    <span className="bnode-port out alt" />
-                  </>
-                ) : (
-                  <span className="bnode-port out" />
-                )}
+                {n.type === 'cond'
+                  ? <><span className="bnode-port out alt2" /><span className="bnode-port out" /><span className="bnode-port out alt" /></>
+                  : <span className="bnode-port out" />}
               </div>
             );
           })}
+
+          {active && nodes.length === 0 && (
+            <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: 'var(--muted)' }}>
+              Canvas vacío — añade un nodo abajo 👇
+            </div>
+          )}
         </div>
 
         <div style={{ padding: '8px 16px', borderTop: '1px solid var(--hair)', display: 'flex', gap: 8, background: 'var(--paper)', alignItems: 'center' }}>
           <span className="h3">Añadir nodo:</span>
           {Object.entries(typeMeta).map(([k, m]) => (
-            <button key={k} className="btn ghost sm">{m.ico}{m.label}</button>
+            <button key={k} className="btn ghost sm" disabled={!active} onClick={() => addNode(k)}>{m.ico}{m.label}</button>
           ))}
           <div style={{ flex: 1 }} />
-          <span className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>arrastra para reordenar · ⌘ + clic para conectar</span>
+          <span className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>arrastra los nodos para reordenar</span>
         </div>
       </div>
 
+      {/* Inspector */}
       <div style={{ borderLeft: '1px solid var(--hair)', background: 'var(--paper)', overflow: 'auto' }}>
         <div style={{ padding: '14px', borderBottom: '1px solid var(--hair)' }}>
           <div className="h3">Inspector</div>
-          {sel && <div style={{ fontSize: 13, fontWeight: 500, marginTop: 4 }}>{typeMeta[sel.type].label} · {sel.id}</div>}
+          {sel && <div style={{ fontSize: 13, fontWeight: 500, marginTop: 4 }}>{typeMeta[sel.type]?.label} · {sel.key}</div>}
         </div>
 
-        {sel && sel.type === 'message' && (
+        {!sel && <div style={{ padding: 14, color: 'var(--muted)', fontSize: 12 }}>Selecciona un nodo para editarlo.</div>}
+
+        {sel && (
           <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div className="field">
-              <label>Mensaje</label>
-              <textarea className="input" defaultValue={sel.body} style={{ minHeight: 120 }} />
-              <div className="mono" style={{ fontSize: 10, color: 'var(--muted)', marginTop: 2 }}>Variables: {'{nombre}'} {'{paquete}'} {'{precio}'} {'{cupon}'}</div>
+              <label>Título</label>
+              <input className="input" value={sel.title} onChange={(e) => updateNode(sel.key, { title: e.target.value })} />
             </div>
             <div className="field">
-              <label>Botones rápidos</label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <div className="row" style={{ gap: 6 }}>
-                  <input className="input" defaultValue="Sí, terminar reserva" style={{ flex: 1 }} />
-                  <button className="iconbtn"><Ico.trash /></button>
-                </div>
-                <div className="row" style={{ gap: 6 }}>
-                  <input className="input" defaultValue="Hablar con asesor" style={{ flex: 1 }} />
-                  <button className="iconbtn"><Ico.trash /></button>
-                </div>
-                <button className="btn ghost sm" style={{ alignSelf: 'flex-start' }}><Ico.plus />Botón</button>
-              </div>
-            </div>
-            <div className="field">
-              <label>Adjuntar</label>
-              <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
-                <button className="btn ghost sm">Imagen del paquete</button>
-                <button className="btn ghost sm">PDF itinerario</button>
-                <button className="btn ghost sm">Link de pago</button>
-              </div>
-            </div>
-            <div className="field">
-              <label>Plantilla aprobada</label>
-              <select className="input">
-                <option>WSP_RECUP_CARRITO_v3</option>
-                <option>WSP_PROMO_CYBER_v1</option>
-                <option>WSP_BIENVENIDA_v2</option>
-              </select>
-              <div className="mono" style={{ fontSize: 10, color: 'var(--good)', marginTop: 2 }}>● aprobada por Meta el 28 abr 2026</div>
+              <label>{sel.type === 'message' ? 'Mensaje' : 'Configuración'}</label>
+              <textarea className="input" value={sel.body} onChange={(e) => updateNode(sel.key, { body: e.target.value })} style={{ minHeight: sel.type === 'message' ? 120 : 80 }}
+                placeholder={sel.type === 'message' ? 'Hola {nombre} 🌿 …' : 'Describe la condición / acción…'} />
+              {sel.type === 'message' && (
+                <div className="mono" style={{ fontSize: 10, color: 'var(--muted)', marginTop: 2 }}>Variables: {'{nombre}'} {'{paquete}'} {'{precio}'} {'{cupon}'}</div>
+              )}
             </div>
             <div className="divider" />
-            <div className="field">
-              <label>Estadísticas de este paso</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12 }}>
-                <div className="card" style={{ padding: '8px 10px' }}><div className="h3">Enviados</div><div style={{ fontSize: 18, fontWeight: 500 }} className="mono">412</div></div>
-                <div className="card" style={{ padding: '8px 10px' }}><div className="h3">Leídos</div><div style={{ fontSize: 18, fontWeight: 500 }} className="mono">388</div></div>
-                <div className="card" style={{ padding: '8px 10px' }}><div className="h3">Respuestas</div><div style={{ fontSize: 18, fontWeight: 500 }} className="mono">152</div></div>
-                <div className="card" style={{ padding: '8px 10px' }}><div className="h3">Conversiones</div><div style={{ fontSize: 18, fontWeight: 500, color: 'var(--good)' }} className="mono">38</div></div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {sel && sel.type !== 'message' && (
-          <div style={{ padding: 14 }}>
-            <div className="field">
-              <label>Configuración</label>
-              <textarea className="input" defaultValue={sel.body} />
-            </div>
+            <button className="btn ghost sm" style={{ alignSelf: 'flex-start', color: 'var(--bad)' }} onClick={() => deleteNode(sel.key)}>
+              <Ico.trash />Eliminar nodo
+            </button>
           </div>
         )}
       </div>
