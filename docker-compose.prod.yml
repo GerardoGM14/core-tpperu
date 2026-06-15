@@ -79,6 +79,9 @@ services:
       # El wa-daemon comparte .env.prod con la API (PORT=4000 es de la API).
       # Aquí forzamos su propio puerto para que coincida con el healthcheck.
       PORT: "8080"
+      # El driver pq (Go) NO entiende ?schema=public (eso es de Prisma).
+      # Le damos la URL sin ese parámetro, solo con sslmode=disable.
+      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
     depends_on:
       postgres:
         condition: service_healthy
