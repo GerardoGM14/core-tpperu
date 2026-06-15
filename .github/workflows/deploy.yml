@@ -1,0 +1,77 @@
+name: Deploy a VPS
+
+# Solo en push directo a main. NUNCA en pull_request:
+# en un repo público, un PR de un fork no debe poder desplegar
+# ni acceder a los secrets.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}   # permite lanzarlo manualmente desde la pestaña Actions
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false   # no cancelar un deploy a medias
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # ---- Build de los estáticos en el runner de GitHub ----
+      - name: Build frontend (Vite, base /app, API same-origin)
+        working-directory: frontend
+        run: |
+          npm ci
+          VITE_API_URL="" npx vite build --base=/app/
+
+      - name: Build landing (Astro, API same-origin)
+        working-directory: landing
+        run: |
+          npm ci
+          PUBLIC_API_URL="" npx astro build
+
+      - name: Empaquetar estáticos
+        run: |
+          rm -rf deploy/www
+          mkdir -p deploy/www/frontend deploy/www/landing
+          cp -r frontend/dist/* deploy/www/frontend/
+          cp -r landing/dist/*  deploy/www/landing/
+
+      # ---- Preparar la llave SSH de deploy ----
+      - name: Configurar SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      # ---- Subir código + artefactos (sin .env: ese vive solo en el VPS) ----
+      - name: Subir al VPS
+        run: |
+          tar czf - \
+            --exclude='node_modules' --exclude='.git' \
+            --exclude='backend/api/dist' --exclude='frontend/dist' \
+            --exclude='frontend/node_modules' --exclude='landing/dist' \
+            --exclude='landing/node_modules' --exclude='*.log' \
+            backend/api backend/wa-daemon deploy docker-compose.prod.yml \
+            | ssh -i ~/.ssh/deploy_key root@"${{ secrets.VPS_HOST }}" \
+                "mkdir -p /opt/tpp && tar xzf - -C /opt/tpp"
+
+      # ---- Rebuild + restart en el VPS ----
+      # El .env.prod ya existe en el VPS y NO se sube desde el CI.
+      - name: Desplegar (build + up)
+        run: |
+          ssh -i ~/.ssh/deploy_key root@"${{ secrets.VPS_HOST }}" \
+            "cd /opt/tpp && docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build"
+
+      - name: Verificar salud
+        run: |
+          ssh -i ~/.ssh/deploy_key root@"${{ secrets.VPS_HOST }}" \
+            "cd /opt/tpp && docker compose -f docker-compose.prod.yml --env-file .env.prod ps && curl -sf http://localhost/health"
