@@ -26,11 +26,18 @@ pnpm-debug.log*
 
 # ---------- Variables de entorno ----------
 .env
-.env.local
-.env.*.local
-.env.development
-.env.production
+.env.*
 !.env.example
+
+# ---------- Artefactos de build / deploy ----------
+deploy/www/
+
+# ---------- Llaves SSH (por si acaso) ----------
+*.pem
+id_rsa*
+*_key
+tpp_ci_deploy*
+tpp_vps*
 
 # ---------- Node / JS ----------
 node_modules/
