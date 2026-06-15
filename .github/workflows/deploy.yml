@@ -46,11 +46,18 @@ jobs:
 
       # ---- Preparar la llave SSH de deploy ----
       - name: Configurar SSH
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          # Escribir la llave preservando saltos de línea y asegurando uno final.
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+          # Validar que la llave es parseable antes de seguir (falla claro si el secret está mal).
+          ssh-keygen -y -f ~/.ssh/deploy_key > /dev/null
+          # known_hosts (no abortar el step si keyscan devuelve no-cero).
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
 
       # ---- Subir código + artefactos (sin .env: ese vive solo en el VPS) ----
       - name: Subir al VPS
