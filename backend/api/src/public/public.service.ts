@@ -169,4 +169,101 @@ export class PublicService {
       welcomeSent,
     };
   }
+
+  /**
+   * Recibe un comprobante de pago (voucher) desde el checkout de la landing.
+   * - upsert del Cliente por teléfono (tag "pago-voucher")
+   * - abre/actualiza su Conversación de WhatsApp
+   * - guarda el voucher como mensaje IMAGE (la imagen viaja en base64)
+   * Así el equipo lo ve y verifica el pago desde el panel de Conversaciones.
+   */
+  async submitVoucher(input: {
+    name: string;
+    phone: string;
+    method: string;
+    voucherBase64: string;
+    orderSummary?: string;
+    total?: string;
+  }) {
+    const phone = normalizePhonePE(input.phone);
+    if (!phone) {
+      throw new Error('Teléfono inválido');
+    }
+    // Validación mínima del data URL de imagen.
+    const match = /^data:(image\/[a-zA-Z0-9.+-]+);base64,/.exec(input.voucherBase64);
+    if (!match) {
+      throw new Error('El comprobante debe ser una imagen válida');
+    }
+    const mimeType = match[1];
+    const remoteJid = phone.replace('+', '') + '@s.whatsapp.net';
+
+    const metodoLabel = input.method === 'yape' ? 'Yape/Plin' : 'Transferencia bancaria';
+
+    // 1) Upsert del cliente
+    const customer = await this.prisma.customer.upsert({
+      where: { phone },
+      update: { fullName: input.name || undefined },
+      create: {
+        fullName: input.name || 'Cliente sin nombre',
+        phone,
+        tags: ['pago-voucher'],
+      },
+    });
+
+    // 2) Abrir/actualizar conversación
+    const convo = await this.prisma.conversation.upsert({
+      where: { remoteJid },
+      update: {
+        customerId: customer.id,
+        lastMessageAt: new Date(),
+        unreadCount: { increment: 1 },
+      },
+      create: {
+        remoteJid,
+        customerId: customer.id,
+        displayName: input.name,
+        chatType: 'individual',
+        unreadCount: 1,
+        lastMessageAt: new Date(),
+      },
+    });
+
+    // 3) Nota de contexto del pago (texto)
+    const resumen =
+      `💳 *Comprobante de pago recibido*\n` +
+      `Método: ${metodoLabel}\n` +
+      (input.total ? `Total: ${input.total}\n` : '') +
+      (input.orderSummary ? `Pedido:\n${input.orderSummary}` : '');
+    await this.prisma.message.create({
+      data: {
+        conversationId: convo.id,
+        direction: MessageDirection.INBOUND,
+        kind: MessageKind.TEXT,
+        status: MessageStatus.DELIVERED,
+        body: resumen,
+        deliveredAt: new Date(),
+      },
+    });
+
+    // 4) El voucher como mensaje IMAGE (imagen en base64 en mediaUrl)
+    const voucherMsg = await this.prisma.message.create({
+      data: {
+        conversationId: convo.id,
+        direction: MessageDirection.INBOUND,
+        kind: MessageKind.IMAGE,
+        status: MessageStatus.DELIVERED,
+        mediaUrl: input.voucherBase64,
+        mediaMimeType: mimeType,
+        mediaCaption: `Comprobante ${metodoLabel}`,
+        deliveredAt: new Date(),
+      },
+    });
+
+    return {
+      ok: true,
+      customerId: customer.id,
+      conversationId: convo.id,
+      messageId: voucherMsg.id,
+    };
+  }
 }

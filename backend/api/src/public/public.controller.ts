@@ -16,6 +16,29 @@ class CreateLeadDto {
   packageSlug?: string;
 }
 
+class SubmitVoucherDto {
+  @IsString() @MinLength(2)
+  name: string;
+
+  @IsString() @MinLength(6)
+  phone: string;
+
+  // 'yape' | 'transferencia'
+  @IsString()
+  method: string;
+
+  // Imagen del comprobante en data URL base64 (data:image/...;base64,...)
+  @IsString() @MinLength(20)
+  voucherBase64: string;
+
+  // Resumen del pedido (texto) y total mostrado.
+  @IsOptional() @IsString()
+  orderSummary?: string;
+
+  @IsOptional() @IsString()
+  total?: string;
+}
+
 // Endpoints PÚBLICOS (sin auth) que consume la landing Astro.
 @Controller('public')
 export class PublicController {
@@ -37,6 +60,15 @@ export class PublicController {
   async createLead(@Body() dto: CreateLeadDto) {
     try {
       return await this.svc.createLead(dto);
+    } catch (err) {
+      throw new BadRequestException((err as Error).message);
+    }
+  }
+
+  @Post('voucher')
+  async submitVoucher(@Body() dto: SubmitVoucherDto) {
+    try {
+      return await this.svc.submitVoucher(dto);
     } catch (err) {
       throw new BadRequestException((err as Error).message);
     }
