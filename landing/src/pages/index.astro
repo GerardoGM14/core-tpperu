@@ -187,7 +187,7 @@ const galeriaVive = [
 	{/* ============================================================
 	     Experiencias favoritas — carrusel de paquetes (desde Figma)
 	     ============================================================ */}
-	<section class="relative bg-[#F3F2ED] py-[70px] px-8 md:px-[100px] overflow-hidden">
+	<section id="paquetes" class="relative bg-[#F3F2ED] py-[70px] px-8 md:px-[100px] overflow-hidden scroll-mt-24">
 		{/* Logo TPP como marca de agua decorativa (abajo-izquierda, dentro de la sección).
 		    Se pinta con máscara CSS para tener color dorado sólido (sin lavado de filtros). */}
 		<div
@@ -326,18 +326,19 @@ const galeriaVive = [
 						<div class="flex items-end justify-between gap-4 md:px-10 flex-wrap">
 							{/* Filtros (solo Paquetes) */}
 							{bloque.filtros ? (
-								<div class="flex gap-3 items-center flex-wrap">
+								<div class="flex gap-3 items-center flex-wrap" data-filtros>
 									{bloque.filtros.map((filtro, i) => (
 										i === 0 ? (
-											<button type="button" class="h-10 px-6 rounded-full bg-[#f4b13b] font-action font-medium text-[16px] text-[#121110] cursor-pointer">{filtro}</button>
+											<button type="button" data-filter={filtro.toUpperCase()} aria-pressed="true" class="h-10 px-6 rounded-full bg-[#f4b13b] font-action font-medium text-[16px] text-[#121110] cursor-pointer transition-colors">{filtro}</button>
 										) : (
-											<button type="button" class="h-10 px-6 rounded-full border border-white bg-white/[0.02] backdrop-blur-[2.65px] font-action font-medium text-[16px] text-white hover:bg-white/10 transition-colors cursor-pointer">{filtro}</button>
+											<button type="button" data-filter={filtro.toUpperCase()} aria-pressed="false" class="h-10 px-6 rounded-full border border-white bg-white/[0.02] backdrop-blur-[2.65px] font-action font-medium text-[16px] text-white hover:bg-white/10 transition-colors cursor-pointer">{filtro}</button>
 										)
 									))}
 								</div>
 							) : <div></div>}
-							{/* Ver todos */}
-							<button type="button" class="font-action font-medium text-[18px] text-[#f4b13b] hover:underline cursor-pointer whitespace-nowrap">{bloque.verTodos}</button>
+							{/* Ver todos — oculto hasta tener la página de catálogo /paquetes.
+							    Para reactivar: descomentar y apuntar el href a la página de listado. */}
+							{/* <button type="button" class="font-action font-medium text-[18px] text-[#f4b13b] hover:underline cursor-pointer whitespace-nowrap">{bloque.verTodos}</button> */}
 						</div>
 					</div>
 
@@ -347,9 +348,9 @@ const galeriaVive = [
 							<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
 						</button>
 
-						<div data-carousel-track data-carousel-infinite class="flex flex-1 gap-6 items-stretch min-w-0 overflow-x-auto px-3 py-5 -mx-3 -my-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+						<div data-carousel-track data-carousel-infinite={bloque.filtros ? undefined : true} class="flex flex-1 gap-6 items-stretch min-w-0 overflow-x-auto px-3 py-5 -mx-3 -my-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 							{bloque.cards.map((p) => (
-								<a href={`/paquetes/${p.slug}`} data-card data-slug={p.slug} data-nombre={p.nombre} data-imagen={p.imagen} data-precio={p.precio} data-precio-antes={p.precioAntes} data-descuento={p.descuento} class="group bg-white shadow-[0_6px_20px_-2px_rgba(0,0,0,0.4)] hover:shadow-[0_12px_28px_-4px_rgba(0,0,0,0.55)] transition-shadow flex flex-col gap-3.5 pb-2.5 pt-1.5 px-1.5 rounded-lg shrink-0 w-[248px] snap-start cursor-pointer">
+								<a href={`/paquetes/${p.slug}`} data-card data-categoria={p.categoria} data-slug={p.slug} data-nombre={p.nombre} data-imagen={p.imagen} data-precio={p.precio} data-precio-antes={p.precioAntes} data-descuento={p.descuento} class="group bg-white shadow-[0_6px_20px_-2px_rgba(0,0,0,0.4)] hover:shadow-[0_12px_28px_-4px_rgba(0,0,0,0.55)] transition-shadow flex flex-col gap-3.5 pb-2.5 pt-1.5 px-1.5 rounded-lg shrink-0 w-[248px] snap-start cursor-pointer">
 									<div class="relative flex flex-col gap-2 h-[194px] items-center justify-end py-3.5 rounded-md overflow-hidden">
 										<img src={p.imagen} alt={p.nombre} class="absolute inset-0 w-full h-full object-cover rounded-md group-hover:scale-105 transition-transform duration-300" />
 										<div class="absolute inset-0 rounded-md bg-gradient-to-b from-[rgba(4,22,20,0.72)] via-transparent to-[rgba(4,22,20,0.3)] mix-blend-multiply"></div>
@@ -444,14 +445,14 @@ const galeriaVive = [
 
 				{/* Botones */}
 				<div class="flex gap-[17px] items-center w-full">
-					<button type="button" class="flex flex-1 gap-1.5 h-12 items-center justify-center px-7 rounded bg-[#f4b13b] hover:brightness-105 transition-all cursor-pointer">
+					<a href="https://wa.me/51948461653?text=Hola%20TPP%20Per%C3%BA%2C%20quiero%20reservar%20con%20un%20asesor." target="_blank" rel="noopener noreferrer" class="flex flex-1 gap-1.5 h-12 items-center justify-center px-7 rounded bg-[#f4b13b] hover:brightness-105 transition-all cursor-pointer">
 						<svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M20 8v6M23 11h-6M9 11a4 4 0 100-8 4 4 0 000 8zM1 21v-1a6 6 0 016-6h4a6 6 0 016 6v1" stroke="#121110" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
 						<span class="font-action font-medium text-[18px] text-[#121110] whitespace-nowrap">Reserva con un Asesor</span>
-					</button>
-					<button type="button" class="flex flex-1 gap-1.5 h-12 items-center justify-center px-7 rounded bg-[#d3d1c6] hover:brightness-95 transition-all cursor-pointer">
+					</a>
+					<a href="/carrito" class="flex flex-1 gap-1.5 h-12 items-center justify-center px-7 rounded bg-[#d3d1c6] hover:brightness-95 transition-all cursor-pointer">
 						<svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#262522" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
 						<span class="font-action font-medium text-[18px] text-[#262522] whitespace-nowrap">Agregar al vuelo</span>
-					</button>
+					</a>
 				</div>
 			</div>
 		</div>
@@ -683,6 +684,47 @@ const galeriaVive = [
 					toast('Añadido a tu maleta de viaje');
 				}
 			}
+		});
+
+		// ---- Filtros de categoría (bloque "Paquetes") ----
+		document.querySelectorAll('[data-filtros]').forEach((group) => {
+			const buttons = Array.from(group.querySelectorAll('[data-filter]')) as HTMLButtonElement[];
+			// El carrusel con cards vive en el mismo bloque que los filtros.
+			const bloque = group.closest('.flex.flex-1.flex-col') || group.parentElement;
+			const trackEl = bloque?.querySelector('[data-carousel-track]') as HTMLElement | null;
+			if (!trackEl) return;
+			const track: HTMLElement = trackEl;
+			const cards = Array.from(track.querySelectorAll('[data-card]')) as HTMLElement[];
+
+			const activeCls = ['bg-[#f4b13b]', 'text-[#121110]'];
+			const idleCls = ['border', 'border-white', 'bg-white/[0.02]', 'backdrop-blur-[2.65px]', 'text-white', 'hover:bg-white/10'];
+
+			function setActive(btn: HTMLButtonElement) {
+				buttons.forEach((b) => {
+					const on = b === btn;
+					b.setAttribute('aria-pressed', String(on));
+					b.classList.remove(...(on ? idleCls : activeCls));
+					b.classList.add(...(on ? activeCls : idleCls));
+				});
+			}
+
+			function applyFilter(categoria: string) {
+				cards.forEach((card) => {
+					const match = (card.dataset.categoria || '').toUpperCase() === categoria;
+					card.classList.toggle('hidden', !match);
+				});
+				track.scrollLeft = 0; // volver al inicio tras filtrar
+			}
+
+			buttons.forEach((btn) => {
+				btn.addEventListener('click', () => {
+					setActive(btn);
+					applyFilter(btn.dataset.filter || '');
+				});
+			});
+
+			// Estado inicial: aplicar el primer filtro (el que viene activo).
+			if (buttons[0]) applyFilter(buttons[0].dataset.filter || '');
 		});
 	</script>
 </Layout>
