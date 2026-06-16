@@ -1,0 +1,101 @@
+---
+// ============================================================
+//  Ofertas — vitrina de paquetes CON descuento.
+//  Filtra los paquetes que tienen el campo `descuento`.
+// ============================================================
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import { getPaquetes, tagClase } from '../data/paquetes.js';
+
+const todos = await getPaquetes();
+const ofertas = todos.filter((p) => p.descuento);
+---
+
+<Layout title="TPP PERÚ | Ofertas 🔥">
+	<Navbar variant="light" />
+
+	{/* Header */}
+	<section class="bg-[#191505] pt-[140px] pb-[60px] px-8 lg:px-[120px]">
+		<div class="flex flex-col gap-4 max-w-[640px]">
+			<div class="inline-flex self-start bg-[#cc140d] -rotate-1 px-5 py-1.5 rounded-sm">
+				<span class="font-body font-medium text-[18px] text-white">PROMOCIONES 🔥</span>
+			</div>
+			<h1 class="font-heading font-bold text-[40px] leading-[1] text-white">Ofertas que no te puedes perder</h1>
+			<p class="font-body text-[18px] text-[#f3f2ed]/80 leading-relaxed">
+				Aprovecha nuestros paquetes con descuento para descubrir Tarapoto y más destinos al mejor precio.
+			</p>
+		</div>
+	</section>
+
+	{/* Grilla de ofertas */}
+	<section class="bg-[#f3f2ed] py-[70px] px-8 lg:px-[120px]">
+		{ofertas.length > 0 ? (
+			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-[1146px] mx-auto">
+				{ofertas.map((p) => (
+					<a href={`/paquetes/${p.slug}`} data-card data-categoria={p.categoria} data-slug={p.slug} data-nombre={p.nombre} data-imagen={p.imagen} data-precio={p.precio} data-precio-antes={p.precioAntes} data-descuento={p.descuento} class="group bg-white shadow-[0_6px_20px_-2px_rgba(34,32,30,0.18)] hover:shadow-[0_12px_28px_-4px_rgba(34,32,30,0.25)] transition-shadow flex flex-col gap-3.5 pb-2.5 pt-1.5 px-1.5 rounded-lg cursor-pointer">
+						<div class="relative flex flex-col gap-2 h-[194px] items-center justify-end py-3.5 rounded-md overflow-hidden">
+							<img src={p.imagen} alt={p.nombre} class="absolute inset-0 w-full h-full object-cover rounded-md group-hover:scale-105 transition-transform duration-300" />
+							<div class="absolute inset-0 rounded-md bg-gradient-to-b from-[rgba(4,22,20,0.72)] via-transparent to-[rgba(4,22,20,0.3)] mix-blend-multiply"></div>
+							<span class={`absolute top-[23px] left-0 px-3 py-1 text-[13px] font-body font-semibold uppercase ${tagClase(p.tag)}`} style="clip-path: polygon(0 0, 100% 0, 90% 100%, 0 100%);">
+								{p.tag}
+							</span>
+							<div class="relative z-10 flex gap-1 text-[#F4B13B] text-[8px]">★★★★★</div>
+						</div>
+						<div class="flex flex-col px-1">
+							<h3 class="font-heading font-semibold text-[16px] leading-[1.11] text-[#191505] text-center">{p.nombre}</h3>
+							<div class="flex flex-col gap-[17px] pt-2.5">
+								<div class="flex gap-2.5 items-end justify-center">
+									<div class="flex flex-col text-center">
+										<span class="font-price text-[12px] leading-[0.95] line-through opacity-70 text-[#121110]">{p.precioAntes}</span>
+										<span class="font-price font-bold text-[18px] leading-[1.2] text-[#191505]">{p.precio}</span>
+									</div>
+									{p.descuento && (
+										<span class="bg-[#cc140d] flex items-center justify-center px-2.5 py-1 rounded-full text-[12px] font-heading font-semibold text-white">{p.descuento}</span>
+									)}
+								</div>
+								<button type="button" data-add-to-trip class="bg-[#d3d1c6] hover:brightness-95 transition-all flex gap-1.5 h-10 items-center justify-center px-6 rounded w-full cursor-pointer">
+									<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2v16M2 10h16" stroke="#262522" stroke-width="2" stroke-linecap="round"/></svg>
+									<span class="font-action font-medium text-[14px] text-[#262522]">Añadir a mi viaje</span>
+								</button>
+							</div>
+						</div>
+					</a>
+				))}
+			</div>
+		) : (
+			<div class="flex flex-col gap-3 items-center text-center py-16">
+				<p class="font-heading font-bold text-[20px] text-[#191505]">Pronto tendremos nuevas ofertas</p>
+				<p class="font-body text-[16px] text-[#4e4b47]">Mientras tanto, explora todos nuestros paquetes.</p>
+				<a href="/#paquetes" class="mt-2 bg-[#f4b13b] hover:brightness-105 transition-all font-action font-medium text-[16px] text-[#121110] px-6 h-11 flex items-center rounded">Ver paquetes</a>
+			</div>
+		)}
+	</section>
+
+	<Footer />
+</Layout>
+
+<script>
+	// Reutiliza "Añadir a mi viaje" (mismo comportamiento que el home).
+	import { addToCart, toast } from '../scripts/cart.js';
+	document.addEventListener('click', (e) => {
+		const btn = (e.target as HTMLElement)?.closest('[data-add-to-trip]');
+		if (!btn) return;
+		e.preventDefault();
+		e.stopPropagation();
+		const card = (btn as HTMLElement).closest('[data-card]') as HTMLElement | null;
+		if (!card) return;
+		addToCart({
+			slug: card.dataset.slug,
+			nombre: card.dataset.nombre,
+			imagen: card.dataset.imagen,
+			precio: card.dataset.precio,
+			precioAntes: card.dataset.precioAntes || '',
+			descuento: card.dataset.descuento || '',
+			fecha: '',
+			personas: '',
+			cantidad: 1,
+		});
+		toast('Añadido a tu maleta de viaje');
+	});
+</script>

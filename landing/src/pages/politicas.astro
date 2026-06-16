@@ -1,0 +1,91 @@
+---
+// ============================================================
+//  Políticas — privacidad, reservas, cancelaciones y términos.
+//  Texto BASE editable. Ajusta el contenido legal según TPP Perú.
+// ============================================================
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+
+// Secciones de la página. Edita aquí los textos legales.
+const secciones = [
+	{
+		id: 'privacidad',
+		titulo: 'Política de Privacidad',
+		parrafos: [
+			'En TPP Perú valoramos tu privacidad. Los datos personales que nos brindas (nombre, teléfono, correo y documento) se usan únicamente para gestionar tus reservas, coordinar tus viajes y enviarte información relacionada con tus compras.',
+			'No compartimos tu información con terceros ajenos a la prestación del servicio, salvo obligación legal. Puedes solicitar la actualización o eliminación de tus datos escribiéndonos por nuestros canales de contacto.',
+		],
+	},
+	{
+		id: 'reservas',
+		titulo: 'Política de Reservas',
+		parrafos: [
+			'La reserva de un paquete o tour se confirma una vez recibido el comprobante de pago y validado por nuestro equipo. Te contactaremos por WhatsApp para confirmar fechas, número de personas y detalles del viaje.',
+			'Los precios y la disponibilidad están sujetos a cambios hasta la confirmación de la reserva. Recomendamos reservar con anticipación, especialmente en temporada alta.',
+		],
+	},
+	{
+		id: 'cancelaciones',
+		titulo: 'Política de Cancelaciones y Reembolsos',
+		parrafos: [
+			'Las cancelaciones solicitadas con más de 7 días de anticipación al inicio del viaje pueden recibir un reembolso parcial o reprogramación, según las condiciones del paquete.',
+			'Las cancelaciones con menos de 48 horas de anticipación no son reembolsables. Los servicios ya iniciados o no utilizados no generan derecho a devolución.',
+		],
+	},
+	{
+		id: 'terminos',
+		titulo: 'Términos y Condiciones',
+		parrafos: [
+			'Al contratar nuestros servicios, aceptas estas políticas. TPP Perú actúa como operador turístico y no se responsabiliza por eventos de fuerza mayor (clima, cierres de vías, etc.) ajenos a su control.',
+			'Para cualquier consulta sobre estas políticas, escríbenos a nuestros canales de atención. Estaremos encantados de ayudarte.',
+		],
+	},
+];
+---
+
+<Layout title="TPP PERÚ | Políticas">
+	<Navbar variant="light" />
+
+	{/* Header */}
+	<section class="bg-[#191505] pt-[140px] pb-[60px] px-8 lg:px-[120px]">
+		<div class="flex flex-col gap-4 max-w-[640px]">
+			<h1 class="font-heading font-bold text-[40px] leading-[1] text-white">Políticas y términos</h1>
+			<p class="font-body text-[18px] text-[#f3f2ed]/80 leading-relaxed">
+				Transparencia en cada viaje. Aquí encuentras nuestras políticas de privacidad, reservas, cancelaciones y los términos del servicio.
+			</p>
+		</div>
+	</section>
+
+	{/* Contenido */}
+	<section class="bg-[#f3f2ed] py-[70px] px-8 lg:px-[120px]">
+		<div class="flex flex-col lg:flex-row gap-12 max-w-[1100px] mx-auto">
+			{/* Índice lateral (desktop) */}
+			<aside class="hidden lg:block shrink-0 w-[220px]">
+				<nav class="sticky top-28 flex flex-col gap-2">
+					<p class="font-heading font-bold text-[14px] text-[#191505] uppercase tracking-wide mb-2">Contenido</p>
+					{secciones.map((s) => (
+						<a href={`#${s.id}`} class="font-body text-[15px] text-[#4e4b47] hover:text-[#f4b13b] transition-colors">{s.titulo}</a>
+					))}
+				</nav>
+			</aside>
+
+			{/* Secciones */}
+			<div class="flex flex-col gap-10 flex-1 min-w-0">
+				{secciones.map((s) => (
+					<div id={s.id} class="flex flex-col gap-3 scroll-mt-28">
+						<h2 class="font-heading font-bold text-[24px] text-[#191505]">{s.titulo}</h2>
+						{s.parrafos.map((p) => (
+							<p class="font-body text-[16px] text-[#121110]/80 leading-relaxed">{p}</p>
+						))}
+					</div>
+				))}
+				<p class="font-body text-[13px] text-[#4e4b47] italic border-t border-[#d3d1c6] pt-6 mt-2">
+					Última actualización: junio de 2026. TPP Perú se reserva el derecho de modificar estas políticas; los cambios se publicarán en esta página.
+				</p>
+			</div>
+		</div>
+	</section>
+
+	<Footer />
+</Layout>
