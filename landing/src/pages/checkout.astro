@@ -1,0 +1,420 @@
+---
+// ============================================================
+//  Checkout — datos del cliente + resumen + (pago).
+//  El resumen se renderiza en cliente desde localStorage (carrito).
+//  ⚠️ NO captura datos de tarjeta. El cobro real se hará con una
+//  pasarela (Culqi) que se conectará en el botón "Pagar".
+//  El widget de Culqi se inserta donde está [data-pago-placeholder].
+// ============================================================
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Layout title="TPP PERÚ | Finalizar compra">
+	<Navbar variant="light" />
+
+	<section class="bg-[#e5e3da] flex flex-col lg:flex-row gap-8 items-start pt-[120px] pb-[80px] px-8 lg:px-[100px] min-h-screen">
+
+		{/* === Columna izquierda: datos del cliente + pago === */}
+		<div class="bg-[#f3f2ed] flex-1 w-full flex flex-col gap-10 rounded-xl pt-7 px-6 pb-10 min-w-0">
+			<div class="flex items-center justify-between w-full">
+				<h1 class="font-heading font-bold text-[28px] leading-[0.95] text-[#191505]">Finalizar compra</h1>
+				<a href="/carrito" class="font-action font-medium text-[14px] text-[#4e4b47] hover:text-[#191505] hover:underline">← Volver al carrito</a>
+			</div>
+
+			{/* Datos del cliente */}
+			<form data-checkout-form class="flex flex-col gap-6 w-full">
+				<div class="flex flex-col gap-5 w-full">
+					<h2 class="font-heading font-bold text-[18px] leading-[0.95] text-[#191505]">Datos de quien reserva</h2>
+
+					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+						<label class="flex flex-col gap-1.5">
+							<span class="font-body text-[14px] text-[#4e4b47]">Nombre completo *</span>
+							<input name="nombre" required type="text" placeholder="Tu nombre y apellido" class="h-11 px-[18px] rounded bg-[#f9f8f6] border border-[#b5b2aa] text-[16px] text-[#121110] placeholder:text-[#b5b2aa] focus:border-[#f4b13b] outline-none transition-colors" />
+						</label>
+						<label class="flex flex-col gap-1.5">
+							<span class="font-body text-[14px] text-[#4e4b47]">Documento (DNI / CE) *</span>
+							<input name="documento" required type="text" inputmode="numeric" placeholder="Nº de documento" class="h-11 px-[18px] rounded bg-[#f9f8f6] border border-[#b5b2aa] text-[16px] text-[#121110] placeholder:text-[#b5b2aa] focus:border-[#f4b13b] outline-none transition-colors" />
+						</label>
+						<label class="flex flex-col gap-1.5">
+							<span class="font-body text-[14px] text-[#4e4b47]">Correo electrónico *</span>
+							<input name="email" required type="email" placeholder="tucorreo@ejemplo.com" class="h-11 px-[18px] rounded bg-[#f9f8f6] border border-[#b5b2aa] text-[16px] text-[#121110] placeholder:text-[#b5b2aa] focus:border-[#f4b13b] outline-none transition-colors" />
+						</label>
+						<label class="flex flex-col gap-1.5">
+							<span class="font-body text-[14px] text-[#4e4b47]">Celular *</span>
+							<input name="telefono" required type="tel" inputmode="tel" placeholder="9XX XXX XXX" class="h-11 px-[18px] rounded bg-[#f9f8f6] border border-[#b5b2aa] text-[16px] text-[#121110] placeholder:text-[#b5b2aa] focus:border-[#f4b13b] outline-none transition-colors" />
+						</label>
+					</div>
+
+					<label class="flex flex-col gap-1.5">
+						<span class="font-body text-[14px] text-[#4e4b47]">Comentarios (opcional)</span>
+						<textarea name="comentarios" rows="3" placeholder="Fechas tentativas, número de personas, requerimientos especiales..." class="px-[18px] py-3 rounded bg-[#f9f8f6] border border-[#b5b2aa] text-[16px] text-[#121110] placeholder:text-[#b5b2aa] focus:border-[#f4b13b] outline-none transition-colors resize-none"></textarea>
+					</label>
+				</div>
+
+				{/* Método de pago — SIMULACIÓN (abre modales, sin cobro real) */}
+				<div class="flex flex-col gap-5 w-full">
+					<h2 class="font-heading font-bold text-[18px] leading-[0.95] text-[#191505]">Método de pago</h2>
+					<div class="flex flex-col gap-3 w-full">
+						{/* Yape / Plin */}
+						<button type="button" data-pago-metodo="yape" class="group flex items-center gap-4 text-left border border-[#d3d1c6] hover:border-[#f4b13b] hover:bg-[#f4b13b]/[0.04] rounded-xl bg-white px-4 py-4 transition-all cursor-pointer shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)]">
+							<span class="shrink-0 flex items-center justify-center size-12 rounded-lg bg-[#742384] text-white group-hover:brightness-125 transition-all">
+								<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="5" y="2" width="14" height="20" rx="2.5" stroke="currentColor" stroke-width="2"/><path d="M12 18h.01" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+							</span>
+							<span class="flex flex-col flex-1 min-w-0">
+								<span class="font-heading font-bold text-[16px] text-[#191505]">Yape / Plin</span>
+								<span class="font-body text-[13px] text-[#4e4b47]">Paga al instante con QR</span>
+							</span>
+							<span class="shrink-0 size-5 rounded-full border-2 border-[#b5b2aa] group-hover:border-[#f4b13b] flex items-center justify-center transition-colors">
+								<span class="size-2.5 rounded-full bg-[#f4b13b] opacity-0 group-hover:opacity-100 transition-opacity"></span>
+							</span>
+						</button>
+						{/* Transferencia */}
+						<button type="button" data-pago-metodo="transferencia" class="group flex items-center gap-4 text-left border border-[#d3d1c6] hover:border-[#f4b13b] hover:bg-[#f4b13b]/[0.04] rounded-xl bg-white px-4 py-4 transition-all cursor-pointer shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)]">
+							<span class="shrink-0 flex items-center justify-center size-12 rounded-lg bg-[#5b6d12] text-white group-hover:brightness-125 transition-all">
+								<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 7h13l-3-3M21 17H8l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+							</span>
+							<span class="flex flex-col flex-1 min-w-0">
+								<span class="font-heading font-bold text-[16px] text-[#191505]">Transferencia bancaria</span>
+								<span class="font-body text-[13px] text-[#4e4b47]">BCP, Interbank y más</span>
+							</span>
+							<span class="shrink-0 size-5 rounded-full border-2 border-[#b5b2aa] group-hover:border-[#f4b13b] flex items-center justify-center transition-colors">
+								<span class="size-2.5 rounded-full bg-[#f4b13b] opacity-0 group-hover:opacity-100 transition-opacity"></span>
+							</span>
+						</button>
+					</div>
+					<p class="font-body text-[12px] text-[#4e4b47] italic">* Simulación de demostración — aún no se procesa ningún pago real.</p>
+				</div>
+			</form>
+		</div>
+
+		{/* === Columna derecha: resumen del pedido === */}
+		<aside class="bg-[#f3f2ed] w-full lg:w-[388px] shrink-0 flex flex-col gap-9 rounded-xl pt-7 pb-6 px-6">
+			<h2 class="font-heading font-bold text-[18px] leading-[0.95] text-[#191505]">Resumen del pedido</h2>
+
+			{/* Lista de items (render en cliente) */}
+			<div data-checkout-items class="flex flex-col gap-4 w-full">
+				{/* se llena desde JS */}
+			</div>
+
+			{/* Estado vacío */}
+			<div data-checkout-vacio class="hidden [&:not(.hidden)]:flex flex-col gap-3 items-center text-center py-6">
+				<p class="font-heading font-bold text-[16px] text-[#191505]">Tu maleta está vacía</p>
+				<a href="/" class="mt-1 bg-[#f4b13b] hover:brightness-105 transition-all font-action font-medium text-[14px] text-[#121110] px-5 h-10 flex items-center rounded">Ver paquetes</a>
+			</div>
+
+			{/* Totales */}
+			<div data-checkout-totales class="flex flex-col gap-3.5 w-full text-[16px] border-t border-[#d3d1c6] pt-5">
+				<div class="flex items-center justify-between w-full">
+					<span class="font-body text-[#4e4b47]">Subtotal</span>
+					<span data-co-subtotal class="font-price font-semibold text-[#121110]">S/ 0.00</span>
+				</div>
+				<div class="flex items-center justify-between w-full">
+					<span class="font-body text-[#4e4b47]">Descuentos</span>
+					<span data-co-descuentos class="font-price font-semibold text-[#121110]">S/ 0.00</span>
+				</div>
+				<div class="flex items-center justify-between w-full text-[18px]">
+					<span class="font-heading font-bold text-[#191505]">Total</span>
+					<span data-co-total class="font-price font-bold text-[#191505]">S/ 0.00</span>
+				</div>
+			</div>
+
+			{/* Botón: por ahora confirma la reserva (lead). El cobro real lo hará Culqi. */}
+			<button type="button" data-confirmar-reserva class="bg-[#f4b13b] hover:brightness-105 transition-all h-11 flex items-center justify-center rounded font-action font-medium text-[16px] text-[#121110] w-full cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+				Confirmar reserva
+			</button>
+			<p class="font-body text-[12px] text-[#4e4b47] text-center -mt-4">Un asesor te contactará para coordinar el pago.</p>
+		</aside>
+	</section>
+
+	{/* ============================================================
+	     Modales de método de pago — SIMULADOS (sin cobro real)
+	     ============================================================ */}
+	<div data-pago-modal class="hidden [&:not(.hidden)]:flex fixed inset-0 z-[200] items-center justify-center p-4">
+		{/* Overlay */}
+		<div data-pago-overlay class="absolute inset-0 bg-black/50 backdrop-blur-sm opacity-0 transition-opacity duration-300"></div>
+
+		{/* Caja del modal */}
+		<div data-pago-caja class="relative bg-[#f3f2ed] rounded-2xl w-full max-w-[420px] shadow-[0_20px_60px_rgba(0,0,0,0.4)] overflow-hidden opacity-0 scale-95 translate-y-4 transition-all duration-300 ease-out">
+			<div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-[#d3d1c6]">
+				<h3 data-pago-titulo class="font-heading font-bold text-[18px] text-[#191505]">Método de pago</h3>
+				<button type="button" data-pago-cerrar class="text-[#4e4b47] hover:text-[#191505] transition-colors cursor-pointer" aria-label="Cerrar">
+					<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+				</button>
+			</div>
+			<div data-pago-contenido class="px-6 py-6"></div>
+			<div class="px-6 pb-6">
+				<button type="button" data-pago-simular class="bg-[#f4b13b] hover:brightness-105 transition-all h-11 flex items-center justify-center rounded font-action font-medium text-[16px] text-[#121110] w-full cursor-pointer">
+					Simular pago
+				</button>
+			</div>
+		</div>
+	</div>
+
+	<Footer />
+</Layout>
+
+<script>
+	import { getCart, parsePrice, formatPrice } from '../scripts/cart.js';
+
+	type CartItem = {
+		slug?: string; nombre?: string; imagen?: string;
+		precio?: string | number; precioAntes?: string | number;
+		descuento?: string; cantidad?: number | string;
+	};
+
+	const itemsBox = document.querySelector('[data-checkout-items]') as HTMLElement;
+	const vacioBox = document.querySelector('[data-checkout-vacio]') as HTMLElement;
+	const totalesBox = document.querySelector('[data-checkout-totales]') as HTMLElement;
+	const btnConfirmar = document.querySelector('[data-confirmar-reserva]') as HTMLButtonElement;
+	const form = document.querySelector('[data-checkout-form]') as HTMLFormElement;
+
+	function render() {
+		const items = getCart();
+
+		if (!items.length) {
+			itemsBox.classList.add('hidden');
+			totalesBox.classList.add('hidden');
+			btnConfirmar.classList.add('hidden');
+			vacioBox.classList.remove('hidden');
+			return;
+		}
+
+		let subtotal = 0;
+		let subtotalAntes = 0;
+		itemsBox.innerHTML = items.map((it: CartItem) => {
+			const cant = Number(it.cantidad) || 1;
+			const linea = parsePrice(it.precio) * cant;
+			subtotal += linea;
+			subtotalAntes += parsePrice(it.precioAntes || it.precio) * cant;
+			return `
+				<div class="flex gap-3 items-center w-full">
+					<img src="${it.imagen}" alt="${it.nombre}" class="w-14 h-14 rounded object-cover shrink-0" />
+					<div class="flex flex-col flex-1 min-w-0">
+						<p class="font-heading font-semibold text-[14px] text-[#191505] truncate">${it.nombre}</p>
+						<p class="font-body text-[13px] text-[#4e4b47]">Cantidad: ${cant}</p>
+					</div>
+					<span class="font-price font-semibold text-[14px] text-[#121110] shrink-0">${formatPrice(linea)}</span>
+				</div>`;
+		}).join('');
+
+		const descuentos = subtotalAntes - subtotal;
+		(document.querySelector('[data-co-subtotal]') as HTMLElement).textContent = formatPrice(subtotalAntes);
+		(document.querySelector('[data-co-descuentos]') as HTMLElement).textContent = '- ' + formatPrice(descuentos);
+		(document.querySelector('[data-co-total]') as HTMLElement).textContent = formatPrice(subtotal);
+	}
+
+	// Confirmar reserva: valida el form y por ahora crea un lead vía WhatsApp.
+	// 🔌 AQUÍ se conectará Culqi: en vez de WhatsApp, abrir el widget de pago.
+	btnConfirmar?.addEventListener('click', () => {
+		if (!form.reportValidity()) return;
+		const items = getCart();
+		if (!items.length) return;
+
+		const data = new FormData(form);
+		const nombre = String(data.get('nombre') || '');
+		const total = (document.querySelector('[data-co-total]') as HTMLElement)?.textContent || '';
+		const lista = items.map((it: CartItem) => `• ${it.nombre} (x${Number(it.cantidad) || 1})`).join('%0A');
+		const msg =
+			`Hola TPP Perú, quiero confirmar mi reserva:%0A%0A` +
+			`Nombre: ${encodeURIComponent(nombre)}%0A` +
+			`Pedido:%0A${lista}%0A%0A` +
+			`Total: ${encodeURIComponent(total)}`;
+		window.open(`https://wa.me/51948461653?text=${msg}`, '_blank', 'noopener');
+	});
+
+	render();
+
+	// ============================================================
+	//  Modales de método de pago — SIMULADOS
+	// ============================================================
+	const modal = document.querySelector('[data-pago-modal]') as HTMLElement;
+	const overlay = document.querySelector('[data-pago-overlay]') as HTMLElement;
+	const tituloEl = document.querySelector('[data-pago-titulo]') as HTMLElement;
+	const contenidoEl = document.querySelector('[data-pago-contenido]') as HTMLElement;
+	const btnCerrar = document.querySelector('[data-pago-cerrar]') as HTMLButtonElement;
+	const btnSimular = document.querySelector('[data-pago-simular]') as HTMLButtonElement;
+
+	function totalActual(): string {
+		return (document.querySelector('[data-co-total]') as HTMLElement)?.textContent || 'S/ 0.00';
+	}
+
+	// Bloque común: subida del comprobante (voucher).
+	function bloqueVoucher(): string {
+		return `
+			<div class="flex flex-col gap-2 border-t border-[#d3d1c6] pt-4 mt-1">
+				<span class="font-heading font-semibold text-[14px] text-[#191505]">Sube tu comprobante</span>
+				<label data-voucher-drop class="flex flex-col items-center justify-center gap-2 text-center border-2 border-dashed border-[#b5b2aa] hover:border-[#f4b13b] rounded-lg bg-[#f9f8f6] px-4 py-6 cursor-pointer transition-colors">
+					<svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0L8 8m4-4l4 4M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="#4e4b47" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+					<span class="font-body text-[13px] text-[#4e4b47]">Toca para subir una foto o captura</span>
+					<span class="font-body text-[12px] text-[#b5b2aa]">JPG o PNG, máx 5 MB</span>
+					<input data-voucher-input type="file" accept="image/*" class="hidden" />
+				</label>
+				<div data-voucher-preview class="hidden flex-col gap-2">
+					<img data-voucher-img alt="Comprobante" class="w-full max-h-48 object-contain rounded-lg border border-[#d3d1c6] bg-white" />
+					<button type="button" data-voucher-quitar class="font-action text-[13px] text-[#cc140d] hover:underline cursor-pointer self-start">Quitar imagen</button>
+				</div>
+			</div>`;
+	}
+
+	const contenidos: Record<string, { titulo: string; html: string }> = {
+		yape: {
+			titulo: 'Pago con Yape / Plin',
+			html: `
+				<div class="flex flex-col gap-4">
+					<div class="flex flex-col gap-3 items-center text-center">
+						<div class="bg-white p-3 rounded-lg border border-[#d3d1c6]">
+							<svg width="140" height="140" viewBox="0 0 140 140" fill="none" class="block">
+								<rect width="140" height="140" fill="white"/>
+								${Array.from({length: 14}).map((_, r) => Array.from({length: 14}).map((_, c) => ((r*7+c*3+r*c) % 3 === 0) ? `<rect x="${c*10}" y="${r*10}" width="10" height="10" fill="#191505"/>` : '').join('')).join('')}
+							</svg>
+						</div>
+						<p class="font-body text-[14px] text-[#4e4b47]">Escanea el código con tu app de <span class="font-semibold text-[#191505]">Yape</span> o <span class="font-semibold text-[#191505]">Plin</span></p>
+						<p class="font-body text-[13px] text-[#4e4b47]">Monto: <span class="font-price font-bold text-[#191505]">${totalActual()}</span></p>
+					</div>
+					${bloqueVoucher()}
+				</div>`,
+		},
+		transferencia: {
+			titulo: 'Transferencia bancaria',
+			html: `
+				<div class="flex flex-col gap-3">
+					<p class="font-body text-[14px] text-[#4e4b47]">Transfiere el monto a una de nuestras cuentas:</p>
+					<div class="flex flex-col gap-2 bg-[#f9f8f6] border border-[#d3d1c6] rounded-lg p-4">
+						<div class="flex justify-between"><span class="font-body text-[13px] text-[#4e4b47]">BCP Soles</span><span class="font-price text-[14px] text-[#191505]">191-2345678-0-12</span></div>
+						<div class="flex justify-between"><span class="font-body text-[13px] text-[#4e4b47]">Interbank Soles</span><span class="font-price text-[14px] text-[#191505]">200-3001234567</span></div>
+						<div class="flex justify-between border-t border-[#d3d1c6] pt-2 mt-1"><span class="font-body text-[13px] text-[#4e4b47]">Titular</span><span class="font-body text-[13px] font-semibold text-[#191505]">TPP Perú E.I.R.L.</span></div>
+					</div>
+					<p class="font-body text-[13px] text-[#4e4b47]">Monto: <span class="font-price font-bold text-[#191505]">${totalActual()}</span></p>
+					${bloqueVoucher()}
+				</div>`,
+		},
+	};
+
+	const caja = document.querySelector('[data-pago-caja]') as HTMLElement;
+
+	let metodoActual = '';
+	let voucherBase64 = '';
+
+	function abrirModal(metodo: string) {
+		const data = contenidos[metodo];
+		if (!data) return;
+		metodoActual = metodo;
+		voucherBase64 = '';
+		tituloEl.textContent = data.titulo;
+		contenidoEl.innerHTML = data.html;
+		btnSimular.textContent = 'Enviar comprobante';
+		btnSimular.classList.remove('hidden');
+		engancharVoucher();
+		modal.classList.remove('hidden');
+		document.body.style.overflow = 'hidden';
+		// Animar entrada en el siguiente frame (para que la transición se dispare).
+		requestAnimationFrame(() => {
+			overlay.classList.remove('opacity-0');
+			caja.classList.remove('opacity-0', 'scale-95', 'translate-y-4');
+		});
+	}
+
+	// Engancha la subida de comprobante (input file → preview + base64).
+	function engancharVoucher() {
+		const input = contenidoEl.querySelector('[data-voucher-input]') as HTMLInputElement | null;
+		const preview = contenidoEl.querySelector('[data-voucher-preview]') as HTMLElement | null;
+		const img = contenidoEl.querySelector('[data-voucher-img]') as HTMLImageElement | null;
+		const drop = contenidoEl.querySelector('[data-voucher-drop]') as HTMLElement | null;
+		const quitar = contenidoEl.querySelector('[data-voucher-quitar]') as HTMLButtonElement | null;
+		if (!input || !preview || !img || !drop) return;
+
+		input.addEventListener('change', () => {
+			const file = input.files?.[0];
+			if (!file) return;
+			if (!file.type.startsWith('image/')) { alert('El comprobante debe ser una imagen.'); return; }
+			if (file.size > 5 * 1024 * 1024) { alert('La imagen no debe pesar más de 5 MB.'); return; }
+			const reader = new FileReader();
+			reader.onload = () => {
+				voucherBase64 = String(reader.result);
+				img.src = voucherBase64;
+				drop.classList.add('hidden');
+				preview.classList.remove('hidden');
+				preview.classList.add('flex');
+			};
+			reader.readAsDataURL(file);
+		});
+
+		quitar?.addEventListener('click', () => {
+			voucherBase64 = '';
+			input.value = '';
+			preview.classList.add('hidden');
+			preview.classList.remove('flex');
+			drop.classList.remove('hidden');
+		});
+	}
+
+	function cerrarModal() {
+		// Animar salida y ocultar al terminar la transición.
+		overlay.classList.add('opacity-0');
+		caja.classList.add('opacity-0', 'scale-95', 'translate-y-4');
+		document.body.style.overflow = '';
+		setTimeout(() => {
+			modal.classList.add('hidden');
+		}, 300);
+	}
+
+	document.querySelectorAll('[data-pago-metodo]').forEach((btn) => {
+		btn.addEventListener('click', () => abrirModal((btn as HTMLElement).dataset.pagoMetodo || ''));
+	});
+	btnCerrar?.addEventListener('click', cerrarModal);
+	overlay?.addEventListener('click', cerrarModal);
+	document.addEventListener('keydown', (e) => { if (e.key === 'Escape') cerrarModal(); });
+
+	// "Enviar comprobante" → valida y manda el voucher al backend.
+	const API = (import.meta.env.PUBLIC_API_URL as string) || '';
+	btnSimular?.addEventListener('click', async () => {
+		// 1) Validar datos del cliente (reusa el form de la página)
+		if (!form.reportValidity()) { cerrarModal(); form.scrollIntoView({ behavior: 'smooth' }); return; }
+		// 2) Validar comprobante
+		if (!voucherBase64) { alert('Por favor sube tu comprobante de pago.'); return; }
+
+		const data = new FormData(form);
+		const nombre = String(data.get('nombre') || '');
+		const telefono = String(data.get('telefono') || '');
+		const total = (document.querySelector('[data-co-total]') as HTMLElement)?.textContent || '';
+		const lista = getCart().map((it: CartItem) => `• ${it.nombre} (x${Number(it.cantidad) || 1})`).join('\n');
+
+		btnSimular.disabled = true;
+		btnSimular.textContent = 'Enviando...';
+		try {
+			const res = await fetch(`${API}/api/public/voucher`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					name: nombre,
+					phone: telefono,
+					method: metodoActual,
+					voucherBase64,
+					orderSummary: lista,
+					total,
+				}),
+			});
+			if (!res.ok) throw new Error('No se pudo enviar el comprobante');
+
+			contenidoEl.innerHTML = `
+				<div class="flex flex-col gap-3 items-center text-center py-4">
+					<div class="bg-[#5b6d12] rounded-full size-16 flex items-center justify-center">
+						<svg width="34" height="34" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+					</div>
+					<p class="font-heading font-bold text-[18px] text-[#191505]">¡Comprobante recibido!</p>
+					<p class="font-body text-[14px] text-[#4e4b47]">Gracias. Un asesor verificará tu pago y te confirmará la reserva por WhatsApp.</p>
+				</div>`;
+			btnSimular.classList.add('hidden');
+			setTimeout(() => {
+				cerrarModal();
+				setTimeout(() => { btnSimular.classList.remove('hidden'); btnSimular.disabled = false; }, 350);
+			}, 3000);
+		} catch (err) {
+			btnSimular.disabled = false;
+			btnSimular.textContent = 'Enviar comprobante';
+			alert('Hubo un problema al enviar el comprobante. Inténtalo de nuevo.');
+		}
+	});
+</script>
