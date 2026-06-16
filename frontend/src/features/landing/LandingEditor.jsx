@@ -1,7 +1,9 @@
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import Ico from '../../components/icons';
 import { TRAVESIA_DATA } from '../../data/travesia';
 import { Sparkline } from '../dashboard/Dashboard';
+import { api } from '../../api/client';
 
 const { packages: initialPkgs, salesByHour, trafficByHour } = TRAVESIA_DATA;
 
@@ -308,7 +310,106 @@ export function Catalogo() {
   );
 }
 
+const CANAL_COLORES = ['var(--ink)', 'var(--wa)', 'var(--accent)', 'var(--info)', 'var(--good)'];
+
+// Genera y descarga un PDF real del reporte con jsPDF (datos del backend).
+async function exportarReportePDF(rep) {
+  const { jsPDF } = await import('jspdf');
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const W = doc.internal.pageSize.getWidth();
+  const M = 48;
+  let y = 56;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(20);
+  doc.setTextColor(25, 21, 5);
+  doc.text('TPP Perú · Reporte', M, y);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  doc.setTextColor(120, 116, 110);
+  y += 20;
+  doc.text(`Periodo: ${rep.periodo}`, M, y);
+  doc.setDrawColor(220, 216, 208);
+  y += 14;
+  doc.line(M, y, W - M, y);
+  y += 28;
+
+  // KPIs
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13);
+  doc.setTextColor(25, 21, 5);
+  doc.text('Indicadores principales', M, y);
+  y += 18;
+  doc.setFontSize(11);
+  const kpiRows = [
+    ['Ingresos del mes', rep.kpis.ingresosMes, rep.kpis.ingresosMesDelta],
+    ['Clientes', String(rep.kpis.clientes), ''],
+    ['Conversión', rep.kpis.conversion, ''],
+    ['Órdenes pagadas', String(rep.kpis.ordenesPagadas), ''],
+  ];
+  kpiRows.forEach(([label, value, delta]) => {
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(78, 75, 71);
+    doc.text(label, M, y);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(25, 21, 5);
+    doc.text(value, M + 200, y);
+    if (delta) { doc.setTextColor(40, 130, 60); doc.text(delta, M + 320, y); }
+    y += 18;
+  });
+  y += 18;
+
+  // Ventas por canal
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13);
+  doc.setTextColor(25, 21, 5);
+  doc.text('Ventas por canal', M, y);
+  y += 18;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  if (rep.ventasPorCanal.length === 0) {
+    doc.setTextColor(120, 116, 110);
+    doc.text('Sin ventas registradas en el periodo.', M, y); y += 16;
+  }
+  rep.ventasPorCanal.forEach((r) => {
+    doc.setTextColor(78, 75, 71);
+    doc.text(r.canal, M, y);
+    doc.setTextColor(25, 21, 5);
+    doc.text(`${r.monto} · ${r.porcentaje}%`, W - M, y, { align: 'right' });
+    y += 16;
+  });
+  y += 18;
+
+  // Funnel
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13);
+  doc.setTextColor(25, 21, 5);
+  doc.text('Funnel de conversión', M, y);
+  y += 18;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  rep.funnel.forEach((r) => {
+    doc.setTextColor(78, 75, 71);
+    doc.text(r.etapa, M, y);
+    doc.setTextColor(25, 21, 5);
+    doc.text(`${r.valor.toLocaleString()} · ${r.porcentaje}%`, W - M, y, { align: 'right' });
+    y += 16;
+  });
+
+  doc.setFontSize(9);
+  doc.setTextColor(150, 146, 140);
+  doc.text('Generado por TPP Perú · panel de operaciones', M, doc.internal.pageSize.getHeight() - 30);
+
+  doc.save(`reporte-tpp-${String(rep.periodo).toLowerCase().replace(/\s+/g, '-')}.pdf`);
+}
+
 export function Reportes() {
+  const { data: rep, isLoading } = useQuery({
+    queryKey: ['reports-overview'],
+    queryFn: () => api('/api/reports/overview'),
+    refetchInterval: 60000,
+  });
+
   return (
     <div className="view">
       <div className="row between">
@@ -317,34 +418,39 @@ export function Reportes() {
           <p className="lead" style={{ marginTop: 4 }}>Mide ventas, tráfico y desempeño de campañas en WhatsApp.</p>
         </div>
         <div className="row" style={{ gap: 8 }}>
-          <button className="btn ghost"><Ico.filter />Mayo 2026</button>
-          <button className="btn ghost"><Ico.copy />Exportar PDF</button>
+          <button className="btn ghost"><Ico.filter />{rep?.periodo || '—'}</button>
+          <button
+            className="btn ghost"
+            data-handled
+            disabled={!rep}
+            onClick={() => rep && exportarReportePDF(rep)}
+          ><Ico.copy />Exportar PDF</button>
         </div>
       </div>
       <div className="spacer-m" />
+      {isLoading || !rep ? (
+        <p className="lead">Cargando reporte…</p>
+      ) : (
+      <>
       <div className="grid-stats">
-        <div className="stat"><div className="label">Ingresos del mes</div><div className="value">S/ 47,820</div><div className="delta up"><Ico.up />+24%</div><div className="spark"><Sparkline data={salesByHour} fill /></div></div>
-        <div className="stat"><div className="label">Visitas únicas</div><div className="value">8,412</div><div className="delta up"><Ico.up />+12%</div><div className="spark"><Sparkline data={trafficByHour} color="var(--info)" fill /></div></div>
-        <div className="stat"><div className="label">Conversión web</div><div className="value">3.8%</div><div className="delta up"><Ico.up />+0.4 pts</div><div className="spark"><Sparkline data={[2, 2.5, 3, 3.2, 3.5, 3.6, 3.8, 3.8]} color="var(--good)" fill /></div></div>
-        <div className="stat"><div className="label">ROI campañas WSP</div><div className="value">7.2x</div><div className="delta up"><Ico.up />+1.1x</div><div className="spark"><Sparkline data={[3, 4, 5, 5, 6, 6.5, 7, 7.2]} color="var(--accent)" fill /></div></div>
+        <div className="stat"><div className="label">Ingresos del mes</div><div className="value">{rep.kpis.ingresosMes}</div><div className="delta up"><Ico.up />{rep.kpis.ingresosMesDelta}</div><div className="spark"><Sparkline data={salesByHour} fill /></div></div>
+        <div className="stat"><div className="label">Clientes</div><div className="value">{rep.kpis.clientes.toLocaleString()}</div><div className="spark"><Sparkline data={trafficByHour} color="var(--info)" fill /></div></div>
+        <div className="stat"><div className="label">Conversión</div><div className="value">{rep.kpis.conversion}</div><div className="spark"><Sparkline data={[2, 2.5, 3, 3.2, 3.5, 3.6, 3.8, 3.8]} color="var(--good)" fill /></div></div>
+        <div className="stat"><div className="label">Órdenes pagadas</div><div className="value">{rep.kpis.ordenesPagadas.toLocaleString()}</div><div className="spark"><Sparkline data={[3, 4, 5, 5, 6, 6.5, 7, 7.2]} color="var(--accent)" fill /></div></div>
       </div>
       <div className="spacer-m" />
       <div className="grid-2">
         <div className="card">
           <div className="card-h"><h2 className="h2">Ventas por canal</h2></div>
           <div className="card-b">
-            {[
-              { k: 'Web — pago en línea', v: 32400, p: 67, c: 'var(--ink)' },
-              { k: 'WhatsApp — link de pago', v: 8940, p: 19, c: 'var(--wa)' },
-              { k: 'WhatsApp — recuperación', v: 4280, p: 9, c: 'var(--accent)' },
-              { k: 'Referidos', v: 2200, p: 5, c: 'var(--info)' },
-            ].map((r, i) => (
+            {rep.ventasPorCanal.length === 0 && <p className="lead" style={{ fontSize: 13 }}>Sin ventas registradas aún.</p>}
+            {rep.ventasPorCanal.map((r, i) => (
               <div key={i} style={{ marginBottom: 12 }}>
                 <div className="row between" style={{ fontSize: 12, marginBottom: 4 }}>
-                  <span>{r.k}</span><span className="mono">S/ {r.v.toLocaleString()} · {r.p}%</span>
+                  <span>{r.canal}</span><span className="mono">{r.monto} · {r.porcentaje}%</span>
                 </div>
                 <div style={{ height: 6, background: 'var(--paper-2)' }}>
-                  <div style={{ height: '100%', width: r.p + '%', background: r.c }} />
+                  <div style={{ height: '100%', width: r.porcentaje + '%', background: CANAL_COLORES[i % CANAL_COLORES.length] }} />
                 </div>
               </div>
             ))}
@@ -353,25 +459,21 @@ export function Reportes() {
         <div className="card">
           <div className="card-h"><h2 className="h2">Funnel de conversión</h2></div>
           <div className="card-b">
-            {[
-              { k: 'Visitas a la landing', v: 8412, p: 100 },
-              { k: 'Vieron un paquete', v: 3820, p: 45 },
-              { k: 'Añadieron al carrito', v: 842, p: 10 },
-              { k: 'Iniciaron checkout', v: 312, p: 3.7 },
-              { k: 'Pagaron', v: 128, p: 1.5 },
-            ].map((r, i) => (
+            {rep.funnel.map((r, i) => (
               <div key={i} style={{ marginBottom: 10 }}>
                 <div className="row between" style={{ fontSize: 12, marginBottom: 4 }}>
-                  <span>{r.k}</span><span className="mono">{r.v.toLocaleString()} · {r.p}%</span>
+                  <span>{r.etapa}</span><span className="mono">{r.valor.toLocaleString()} · {r.porcentaje}%</span>
                 </div>
                 <div style={{ height: 22, background: 'var(--paper-2)', position: 'relative' }}>
-                  <div style={{ height: '100%', width: r.p + '%', background: 'var(--ink)' }} />
+                  <div style={{ height: '100%', width: r.porcentaje + '%', background: 'var(--ink)' }} />
                 </div>
               </div>
             ))}
           </div>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }
