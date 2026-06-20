@@ -702,12 +702,18 @@ textarea.input { min-height: 80px; resize: vertical; }
 }
 .bnode-port {
   position: absolute;
-  width: 10px; height: 10px;
+  width: 12px; height: 12px;
   border: 1.5px solid var(--ink);
   border-radius: 50%;
   background: var(--surface);
   cursor: crosshair;
+  transition: transform 0.1s, background 0.1s;
+  z-index: 2;
 }
+.bnode-port.out:hover { transform: scale(1.4); background: var(--accent); }
+.bnode-port.in:hover  { transform: translateY(-50%) scale(1.4); background: var(--good); }
+/* Nodo destino resaltado mientras se arrastra una conexión */
+.bnode.droppable { outline: 2px dashed var(--accent); outline-offset: 2px; }
 .bnode-port.in  { left: -6px; top: 50%; transform: translateY(-50%); }
 .bnode-port.out { right: -6px; top: 50%; transform: translateY(-50%); }
 .bnode-port.out.alt { top: auto; bottom: 14px; }

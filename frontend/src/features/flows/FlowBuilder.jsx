@@ -46,6 +46,8 @@ export default function FlowBuilder() {
   const [edges, setEdges] = React.useState([]);
   const [dirty, setDirty] = React.useState(false);
   const [drag, setDrag] = React.useState(null);
+  // Conexión en curso: { from: key, kind?: 'alt'|'alt2', x, y } mientras se arrastra desde un puerto out.
+  const [connecting, setConnecting] = React.useState(null);
   const canvasRef = React.useRef(null);
 
   // Lista de flujos (sidebar)
@@ -99,6 +101,48 @@ export default function FlowBuilder() {
     window.addEventListener('mouseup', onUp);
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
   }, [drag]);
+
+  // ---- Conexión entre nodos (arrastrar de un puerto OUT a un puerto IN) ----
+  const startConnect = (e, fromKey, kind) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const rect = canvasRef.current?.getBoundingClientRect();
+    setConnecting({ from: fromKey, kind, x: e.clientX - (rect?.left || 0), y: e.clientY - (rect?.top || 0) });
+  };
+  // Suelta sobre un nodo destino → crea el edge.
+  const finishConnect = (toKey) => {
+    if (!connecting) return;
+    if (connecting.from === toKey) { setConnecting(null); return; } // no auto-conexión
+    setEdges((prev) => {
+      // Evita duplicar la misma conexión (mismo origen+rama+destino)
+      const exists = prev.some((x) => x.from === connecting.from && x.to === toKey && (x.kind || null) === (connecting.kind || null));
+      if (exists) return prev;
+      // Un puerto de salida simple (no condición) solo apunta a un destino: reemplaza el anterior.
+      const cleaned = connecting.kind
+        ? prev
+        : prev.filter((x) => !(x.from === connecting.from && !x.kind));
+      return [...cleaned, { from: connecting.from, to: toKey, kind: connecting.kind || undefined }];
+    });
+    setDirty(true);
+    setConnecting(null);
+  };
+  React.useEffect(() => {
+    if (!connecting) return;
+    const onMove = (e) => {
+      const rect = canvasRef.current?.getBoundingClientRect();
+      setConnecting((c) => c ? { ...c, x: e.clientX - (rect?.left || 0), y: e.clientY - (rect?.top || 0) } : c);
+    };
+    const onUp = () => setConnecting(null); // si se suelta fuera de un nodo, cancela
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+  }, [connecting]);
+
+  // Borra una conexión (click en su línea).
+  const removeEdge = (idx) => {
+    setEdges((prev) => prev.filter((_, i) => i !== idx));
+    setDirty(true);
+  };
 
   // ---- Mutaciones ----
   const createFlow = useMutation({
@@ -219,17 +263,35 @@ export default function FlowBuilder() {
               const x2 = b.posX, y2 = b.posY + NODE_H / 2;
               if (e.kind === 'alt')  y1 = a.posY + NODE_H - 14;
               if (e.kind === 'alt2') y1 = a.posY + 14;
-              return <path key={i} d={bezier(x1, y1, x2, y2)} className={'bedge ' + (e.kind || '')} />;
+              return (
+                <g key={i}>
+                  <path d={bezier(x1, y1, x2, y2)} className={'bedge ' + (e.kind || '')} />
+                  {/* Línea ancha invisible para poder clicar y borrar la conexión */}
+                  <path d={bezier(x1, y1, x2, y2)} stroke="transparent" strokeWidth={14} fill="none"
+                    style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
+                    onClick={() => { if (confirm('¿Eliminar esta conexión?')) removeEdge(i); }} />
+                </g>
+              );
             })}
+            {/* Línea temporal mientras se arrastra una conexión */}
+            {connecting && (() => {
+              const a = nodes.find((n) => n.key === connecting.from);
+              if (!a) return null;
+              let x1 = a.posX + NODE_W, y1 = a.posY + NODE_H / 2;
+              if (connecting.kind === 'alt')  y1 = a.posY + NODE_H - 14;
+              if (connecting.kind === 'alt2') y1 = a.posY + 14;
+              return <path d={bezier(x1, y1, connecting.x, connecting.y)} className="bedge" style={{ opacity: 0.5, strokeDasharray: '5 4' }} />;
+            })()}
           </svg>
 
           {nodes.map((n) => {
             const meta = typeMeta[n.type] || typeMeta.message;
             return (
               <div key={n.key}
-                className={'bnode ' + n.type + (selected === n.key ? ' selected' : '')}
+                className={'bnode ' + n.type + (selected === n.key ? ' selected' : '') + (connecting && connecting.from !== n.key && n.type !== 'trigger' ? ' droppable' : '')}
                 style={{ left: n.posX, top: n.posY, width: NODE_W }}
-                onMouseDown={(e) => onMouseDown(e, n.key)}>
+                onMouseDown={(e) => onMouseDown(e, n.key)}
+                onMouseUp={() => { if (connecting && n.type !== 'trigger') finishConnect(n.key); }}>
                 <div className="bnode-h">
                   {meta.ico}
                   <span>{meta.label}</span>
@@ -242,8 +304,12 @@ export default function FlowBuilder() {
                 </div>
                 {n.type !== 'trigger' && <span className="bnode-port in" />}
                 {n.type === 'cond'
-                  ? <><span className="bnode-port out alt2" /><span className="bnode-port out" /><span className="bnode-port out alt" /></>
-                  : <span className="bnode-port out" />}
+                  ? <>
+                      <span className="bnode-port out alt2" title="Salida alternativa" onMouseDown={(e) => startConnect(e, n.key, 'alt2')} />
+                      <span className="bnode-port out" title="Salida principal" onMouseDown={(e) => startConnect(e, n.key)} />
+                      <span className="bnode-port out alt" title="Salida alternativa" onMouseDown={(e) => startConnect(e, n.key, 'alt')} />
+                    </>
+                  : <span className="bnode-port out" title="Arrastra para conectar" onMouseDown={(e) => startConnect(e, n.key)} />}
               </div>
             );
           })}
