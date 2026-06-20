@@ -5,6 +5,8 @@ import { IsArray, IsEnum, IsInt, IsObject, IsOptional, IsString, ValidateNested 
 import { Type } from 'class-transformer';
 import { FlowNodeType, FlowStatus, FlowTriggerType, Prisma } from '@prisma/client';
 import { PrismaService } from '../shared/prisma.service';
+import { WhatsappBridgeModule } from '../whatsapp-bridge/whatsapp-bridge.module';
+import { FlowEngineService } from './flow-engine.service';
 
 class CreateFlowDto {
   @IsString() code: string;
@@ -126,5 +128,10 @@ class FlowsController {
   @Delete(':id') remove(@Param('id') id: string) { return this.svc.remove(id); }
 }
 
-@Module({ controllers: [FlowsController], providers: [FlowsService] })
+@Module({
+  imports: [WhatsappBridgeModule],
+  controllers: [FlowsController],
+  providers: [FlowsService, FlowEngineService],
+  exports: [FlowEngineService],
+})
 export class FlowsModule {}
