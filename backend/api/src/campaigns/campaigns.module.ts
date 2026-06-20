@@ -1,5 +1,6 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { Module, Body, Controller, Delete, Get, Injectable, Logger, NotFoundException, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { AuthGuard } from '@nestjs/passport';
 import { IsArray, IsDateString, IsEnum, IsObject, IsOptional, IsString } from 'class-validator';
 import { CampaignStatus, MessageDirection, MessageKind, MessageStatus, Prisma } from '@prisma/client';
@@ -140,6 +141,25 @@ class CampaignsService {
       where: { id },
       data: { status: CampaignStatus.COMPLETED, stats: stats as Prisma.InputJsonValue },
     });
+  }
+
+  // ---- Scheduler: cada minuto envía las campañas programadas cuya hora llegó ----
+  @Cron('0 * * * * *')
+  async processScheduled() {
+    const now = new Date();
+    const due = await this.prisma.campaign.findMany({
+      where: { status: CampaignStatus.SCHEDULED, scheduledAt: { lte: now } },
+      select: { id: true, name: true },
+    });
+    if (!due.length) return;
+    this.logger.log(`Scheduler: enviando ${due.length} campaña(s) programada(s)`);
+    for (const c of due) {
+      try {
+        await this.send(c.id);
+      } catch (err) {
+        this.logger.warn(`Scheduler: fallo al enviar campaña ${c.name}: ${(err as Error).message}`);
+      }
+    }
   }
 
   // Reemplaza {nombre} por el primer nombre del cliente.

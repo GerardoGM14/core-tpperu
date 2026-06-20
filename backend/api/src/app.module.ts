@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { SharedModule } from './shared/shared.module';
 import { HealthController } from './common/health.controller';
 import { AuthModule } from './auth/auth.module';
@@ -23,6 +24,7 @@ import { SettingsModule } from './settings/settings.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     SharedModule,
     AuthModule,
     UsersModule,
