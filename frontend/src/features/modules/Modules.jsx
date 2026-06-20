@@ -32,12 +32,14 @@ function PreTripPreview({ when }) {
 }
 
 // ---------- Modal: crear / editar campaña ----------
-function CampaignModal({ campaign, onClose }) {
+function CampaignModal({ campaign, onClose, onCreated }) {
   const qc = useQueryClient();
   const editing = !!campaign?.id;
   const [name, setName] = React.useState(campaign?.name || '');
   const [body, setBody] = React.useState(campaign?.body || '');
   const [tags, setTags] = React.useState(campaign?.audience?.tags || []);
+  // Cuándo enviar: 'now' (inmediato) | 'schedule' (programar fecha)
+  const [modo, setModo] = React.useState(campaign?.scheduledAt ? 'schedule' : 'now');
   const [scheduledAt, setScheduledAt] = React.useState(campaign?.scheduledAt?.slice(0, 16) || '');
 
   // Cuenta de destinatarios según los tags seleccionados.
@@ -48,8 +50,20 @@ function CampaignModal({ campaign, onClose }) {
   const count = audience?.count ?? 0;
 
   const save = useMutation({
-    mutationFn: (data) => editing ? campaignsApi.update(campaign.id, data) : campaignsApi.create(data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['campaigns'] }); onClose(); },
+    mutationFn: async (data) => {
+      if (editing) return campaignsApi.update(campaign.id, data);
+      const created = await campaignsApi.create(data);
+      // Si es envío inmediato, dispara el send apenas se crea.
+      if (data.status === 'DRAFT' && modo === 'now') {
+        await campaignsApi.send(created.id);
+      }
+      return created;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['campaigns'] });
+      if (!editing && onCreated) onCreated(); // lleva a la pestaña de campañas
+      onClose();
+    },
   });
 
   const toggleTag = (t) => setTags((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]);
@@ -57,14 +71,22 @@ function CampaignModal({ campaign, onClose }) {
   const submit = (e) => {
     e.preventDefault();
     if (!name.trim() || !body.trim()) return;
+    if (modo === 'schedule' && !scheduledAt) return;
     save.mutate({
       name: name.trim(),
       body: body.trim(),
       audience: { tags },
-      status: scheduledAt ? 'SCHEDULED' : 'DRAFT',
-      scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : undefined,
+      status: modo === 'schedule' ? 'SCHEDULED' : 'DRAFT',
+      scheduledAt: modo === 'schedule' ? new Date(scheduledAt).toISOString() : undefined,
     });
   };
+
+  // Texto del botón principal según el modo.
+  const accionLabel = editing
+    ? (save.isPending ? 'Guardando…' : 'Guardar cambios')
+    : modo === 'now'
+      ? (save.isPending ? 'Enviando…' : `Enviar ahora a ${count} cliente${count === 1 ? '' : 's'}`)
+      : (save.isPending ? 'Programando…' : 'Programar envío');
 
   return (
     <div className="m-back" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -101,15 +123,33 @@ function CampaignModal({ campaign, onClose }) {
             </div>
           </div>
 
-          <div className="field">
-            <label>Programar (opcional)</label>
-            <input className="input" type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} />
-          </div>
+          {!editing && (
+            <div className="field">
+              <label>¿Cuándo enviar?</label>
+              <div className="row" style={{ gap: 6 }}>
+                <button type="button" className={'btn ghost sm ' + (modo === 'now' ? 'active' : '')} onClick={() => setModo('now')}>
+                  <Ico.send />Enviar ahora
+                </button>
+                <button type="button" className={'btn ghost sm ' + (modo === 'schedule' ? 'active' : '')} onClick={() => setModo('schedule')}>
+                  <Ico.eye />Programar
+                </button>
+              </div>
+              {modo === 'schedule' && (
+                <input className="input" type="datetime-local" style={{ marginTop: 8 }}
+                  value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} />
+              )}
+              <div className="mono" style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>
+                {modo === 'now'
+                  ? 'El mensaje saldrá por WhatsApp de inmediato.'
+                  : 'Se enviará automáticamente a la fecha y hora elegidas.'}
+              </div>
+            </div>
+          )}
 
           <div className="row between" style={{ marginTop: 4 }}>
             <button type="button" className="btn ghost" onClick={onClose}>Cancelar</button>
-            <button type="submit" className="btn" disabled={save.isPending || !name.trim() || !body.trim()}>
-              {save.isPending ? 'Guardando…' : (editing ? 'Guardar cambios' : 'Crear campaña')}
+            <button type="submit" className="btn" disabled={save.isPending || !name.trim() || !body.trim() || (modo === 'schedule' && !scheduledAt)}>
+              {accionLabel}
             </button>
           </div>
         </div>
@@ -383,7 +423,7 @@ export function Recordatorios() {
         </div>
       )}
 
-      {modal && <CampaignModal campaign={modal.id ? modal : null} onClose={() => setModal(null)} />}
+      {modal && <CampaignModal campaign={modal.id ? modal : null} onClose={() => setModal(null)} onCreated={() => setTab('mass')} />}
     </div>
   );
 }
