@@ -170,6 +170,11 @@ import Footer from '../components/Footer.astro';
 	const btnConfirmar = document.querySelector('[data-confirmar-reserva]') as HTMLButtonElement;
 	const form = document.querySelector('[data-checkout-form]') as HTMLFormElement;
 
+	const API = (import.meta.env.PUBLIC_API_URL as string) || '';
+	// Estado del pago elegido en el modal (compartido con "Confirmar reserva").
+	let metodoActual = '';
+	let voucherBase64 = '';
+
 	function render() {
 		const items = getCart();
 
@@ -205,23 +210,50 @@ import Footer from '../components/Footer.astro';
 		(document.querySelector('[data-co-total]') as HTMLElement).textContent = formatPrice(subtotal);
 	}
 
-	// Confirmar reserva: valida el form y por ahora crea un lead vía WhatsApp.
-	// 🔌 AQUÍ se conectará Culqi: en vez de WhatsApp, abrir el widget de pago.
-	btnConfirmar?.addEventListener('click', () => {
+	// Confirmar reserva: valida el form y envía la reserva al backend (que manda emails).
+	btnConfirmar?.addEventListener('click', async () => {
 		if (!form.reportValidity()) return;
 		const items = getCart();
-		if (!items.length) return;
+		if (!items.length) { alert('Tu maleta está vacía.'); return; }
 
 		const data = new FormData(form);
 		const nombre = String(data.get('nombre') || '');
+		const email = String(data.get('email') || '');
+		const telefono = String(data.get('telefono') || '');
+		const documento = String(data.get('documento') || '');
+		const comentarios = String(data.get('comentarios') || '');
 		const total = (document.querySelector('[data-co-total]') as HTMLElement)?.textContent || '';
-		const lista = items.map((it: CartItem) => `• ${it.nombre} (x${Number(it.cantidad) || 1})`).join('%0A');
-		const msg =
-			`Hola TPP Perú, quiero confirmar mi reserva:%0A%0A` +
-			`Nombre: ${encodeURIComponent(nombre)}%0A` +
-			`Pedido:%0A${lista}%0A%0A` +
-			`Total: ${encodeURIComponent(total)}`;
-		window.open(`https://wa.me/51948461653?text=${msg}`, '_blank', 'noopener');
+		const lista = items.map((it: CartItem) => `• ${it.nombre} (x${Number(it.cantidad) || 1})`).join('\n');
+
+		btnConfirmar.disabled = true;
+		const txtOriginal = btnConfirmar.textContent;
+		btnConfirmar.textContent = 'Enviando…';
+		try {
+			const res = await fetch(`${API}/api/public/reservation`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					name: nombre,
+					phone: telefono,
+					email,
+					document: documento,
+					comments: comentarios,
+					orderSummary: lista,
+					total,
+					voucherBase64: voucherBase64 || undefined, // adjunta el comprobante si lo subió
+				}),
+			});
+			if (!res.ok) throw new Error('No se pudo confirmar la reserva');
+			// Limpia el carrito y muestra confirmación.
+			localStorage.removeItem('tpp_cart_v1');
+			document.dispatchEvent(new CustomEvent('cart:change'));
+			alert('¡Reserva confirmada! Te enviamos un correo de confirmación. Un asesor te contactará pronto.');
+			window.location.href = '/';
+		} catch (err) {
+			btnConfirmar.disabled = false;
+			btnConfirmar.textContent = txtOriginal;
+			alert('Hubo un problema al confirmar la reserva. Inténtalo de nuevo o contáctanos por WhatsApp.');
+		}
 	});
 
 	render();
@@ -294,9 +326,6 @@ import Footer from '../components/Footer.astro';
 
 	const caja = document.querySelector('[data-pago-caja]') as HTMLElement;
 
-	let metodoActual = '';
-	let voucherBase64 = '';
-
 	function abrirModal(metodo: string) {
 		const data = contenidos[metodo];
 		if (!data) return;
@@ -368,7 +397,6 @@ import Footer from '../components/Footer.astro';
 	document.addEventListener('keydown', (e) => { if (e.key === 'Escape') cerrarModal(); });
 
 	// "Enviar comprobante" → valida y manda el voucher al backend.
-	const API = (import.meta.env.PUBLIC_API_URL as string) || '';
 	btnSimular?.addEventListener('click', async () => {
 		// 1) Validar datos del cliente (reusa el form de la página)
 		if (!form.reportValidity()) { cerrarModal(); form.scrollIntoView({ behavior: 'smooth' }); return; }
