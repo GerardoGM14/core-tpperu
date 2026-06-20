@@ -39,6 +39,33 @@ class SubmitVoucherDto {
   total?: string;
 }
 
+class ConfirmReservationDto {
+  @IsString() @MinLength(2)
+  name: string;
+
+  @IsString() @MinLength(6)
+  phone: string;
+
+  @IsString()
+  email: string;
+
+  @IsOptional() @IsString()
+  document?: string;
+
+  @IsOptional() @IsString()
+  comments?: string;
+
+  @IsOptional() @IsString()
+  orderSummary?: string;
+
+  @IsOptional() @IsString()
+  total?: string;
+
+  // Comprobante opcional (si lo subió antes). Data URL base64.
+  @IsOptional() @IsString()
+  voucherBase64?: string;
+}
+
 // Endpoints PÚBLICOS (sin auth) que consume la landing Astro.
 @Controller('public')
 export class PublicController {
@@ -69,6 +96,15 @@ export class PublicController {
   async submitVoucher(@Body() dto: SubmitVoucherDto) {
     try {
       return await this.svc.submitVoucher(dto);
+    } catch (err) {
+      throw new BadRequestException((err as Error).message);
+    }
+  }
+
+  @Post('reservation')
+  async confirmReservation(@Body() dto: ConfirmReservationDto) {
+    try {
+      return await this.svc.confirmReservation(dto);
     } catch (err) {
       throw new BadRequestException((err as Error).message);
     }
