@@ -9,18 +9,39 @@ import holaBg from '../assets/hola-bg.png';
 import holaLetrero from '../assets/hola-letrero.png';
 import holaBuses from '../assets/hola-equipo2.png';
 import holaBus from '../assets/hola-bus.png';
-import equipoCard from '../assets/equipo-card.png';
 import trazoEquipo from '../icons/trazo-equipo.svg';
+
+// Fotos del equipo (../assets/equipo/)
+import fotoKennet from '../assets/equipo/kennet-falcon.png';
+import fotoFlor from '../assets/equipo/flor-jara.png';
+import fotoManuela from '../assets/equipo/manuela-jara.png';
+import fotoKevin from '../assets/equipo/kevin-tananta.png';
+import fotoJenny from '../assets/equipo/jenny-salazar.png';
+import fotoMoises from '../assets/equipo/moises-pinchi.png';
+import fotoMarcos from '../assets/equipo/marcos-mendoza.png';
+import fotoMilagros from '../assets/equipo/milagros-flores.png';
+import fotoRonaldo from '../assets/equipo/ronaldo-macedo.png';
+import fotoAbel from '../assets/equipo/abel-salas.png';
+import fotoPatrick from '../assets/equipo/patrick-bardales.png';
+import fotoFrank from '../assets/equipo/frank-espinoza.png';
 
 // ============================================================
 //  Sección "Detrás de cada viaje" — equipo de TPP Perú (node 330:5190)
-//  EDITA AQUÍ cada miembro. La foto se reemplaza por un import de
-//  ../assets/ cuando tengas las fotos reales de cada persona.
+//  Ordenado por jerarquía de cargo (mayor a menor).
 // ============================================================
 const equipo = [
-	{ nombre: 'KENNET FALCON - GERENTE GENERAL',     foto: equipoCard },
-	{ nombre: 'FLOR JARA - GESTORA DE RESERVAS',      foto: equipoCard },
-	{ nombre: 'MANUELA JARA - ASESORA DE RESERVAS',   foto: equipoCard },
+	{ nombre: 'Kennet Falcon',   cargo: 'Gerente General',      foto: fotoKennet },
+	{ nombre: 'Flor Jara',       cargo: 'Gestora de Reservas',  foto: fotoFlor },
+	{ nombre: 'Manuela Jara',    cargo: 'Asesora de Reservas',  foto: fotoManuela },
+	{ nombre: 'Kevin Tananta',   cargo: 'Asesor de Reservas',   foto: fotoKevin },
+	{ nombre: 'Jenny Salazar',   cargo: 'Asesora de Reservas',  foto: fotoJenny },
+	{ nombre: 'Moisés Pinchi',   cargo: 'Asesor de Reservas',   foto: fotoMoises },
+	{ nombre: 'Marcos Mendoza',  cargo: 'Guía Turístico',       foto: fotoMarcos },
+	{ nombre: 'Milagros Flores', cargo: 'Guía Turística',       foto: fotoMilagros },
+	{ nombre: 'Ronaldo Macedo',  cargo: 'Guía Turístico',       foto: fotoRonaldo },
+	{ nombre: 'Abel Salas',      cargo: 'Conductor Oficial',    foto: fotoAbel },
+	{ nombre: 'Patrick Bardales',cargo: 'Conductor Oficial',    foto: fotoPatrick },
+	{ nombre: 'Frank Espinoza',  cargo: 'Audiovisual',          foto: fotoFrank },
 ];
 ---
 
@@ -127,11 +148,12 @@ const equipo = [
 				<article class="bg-[#f3f2ed] flex flex-col gap-3.5 items-center pt-1.5 pb-3.5 px-1.5 rounded-lg drop-shadow-[0_1px_3.75px_rgba(34,32,30,0.08)]">
 					{/* Foto (proporción 312/393) */}
 					<div class="w-full aspect-[312/393] rounded-md overflow-hidden">
-						<Image src={m.foto} alt={m.nombre} class="w-full h-full object-cover" />
+						<Image src={m.foto} alt={`${m.nombre} — ${m.cargo}`} class="w-full h-full object-cover" />
 					</div>
 					{/* Nombre + cargo */}
-					<div class="flex flex-col items-center justify-center px-1.5 w-full">
-						<p class="font-heading font-bold text-[18px] leading-[0.95] text-[#191505] text-center">{m.nombre}</p>
+					<div class="flex flex-col items-center justify-center gap-0.5 px-1.5 w-full">
+						<p class="font-heading font-bold text-[18px] leading-[1.05] text-[#191505] text-center">{m.nombre}</p>
+						<p class="font-body text-[14px] text-[#bc8029] text-center uppercase tracking-wide">{m.cargo}</p>
 					</div>
 				</article>
 			))}
