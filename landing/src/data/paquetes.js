@@ -24,34 +24,40 @@
 import lagunaAzulPortada from '../assets/paquetes/tarapoto-laguna-azul-7d6n/portada.jpg';
 import lagunaAzulG1 from '../assets/paquetes/tarapoto-laguna-azul-7d6n/galeria-1.jpg';
 import lagunaAzulG2 from '../assets/paquetes/tarapoto-laguna-azul-7d6n/galeria-2.jpg';
+import lagunaAzulG3 from '../assets/paquetes/tarapoto-laguna-azul-7d6n/galeria-3.jpg';
 
 import ahuashiyacuPortada from '../assets/paquetes/cataratas-ahuashiyacu-4d3n/portada.jpg';
 import ahuashiyacuG1 from '../assets/paquetes/cataratas-ahuashiyacu-4d3n/galeria-1.jpg';
 import ahuashiyacuG2 from '../assets/paquetes/cataratas-ahuashiyacu-4d3n/galeria-2.jpg';
 import ahuashiyacuG3 from '../assets/paquetes/cataratas-ahuashiyacu-4d3n/galeria-3.jpg';
+import ahuashiyacuG4 from '../assets/paquetes/cataratas-ahuashiyacu-4d3n/galeria-4.jpg';
 
 import altoMayoPortada from '../assets/paquetes/alto-mayo-moyobamba-rioja-5d4n/portada.jpg';
 import altoMayoG1 from '../assets/paquetes/alto-mayo-moyobamba-rioja-5d4n/galeria-1.jpg';
 import altoMayoG2 from '../assets/paquetes/alto-mayo-moyobamba-rioja-5d4n/galeria-2.jpg';
 import altoMayoG3 from '../assets/paquetes/alto-mayo-moyobamba-rioja-5d4n/galeria-3.jpg';
 import altoMayoG4 from '../assets/paquetes/alto-mayo-moyobamba-rioja-5d4n/galeria-4.jpg';
+import altoMayoG5 from '../assets/paquetes/alto-mayo-moyobamba-rioja-5d4n/galeria-5.jpg';
 
 import lamasPortada from '../assets/paquetes/lamas-nativa-castillo-3d2n/portada.jpg';
 import lamasG1 from '../assets/paquetes/lamas-nativa-castillo-3d2n/galeria-1.jpg';
 import lamasG2 from '../assets/paquetes/lamas-nativa-castillo-3d2n/galeria-2.jpg';
 import lamasG3 from '../assets/paquetes/lamas-nativa-castillo-3d2n/galeria-3.jpg';
 import lamasG4 from '../assets/paquetes/lamas-nativa-castillo-3d2n/galeria-4.jpg';
+import lamasG5 from '../assets/paquetes/lamas-nativa-castillo-3d2n/galeria-5.jpg';
 
 import puntaCanaPortada from '../assets/paquetes/punta-cana-6d5n/portada.jpg';
 import puntaCanaG1 from '../assets/paquetes/punta-cana-6d5n/galeria-1.jpg';
 import puntaCanaG2 from '../assets/paquetes/punta-cana-6d5n/galeria-2.jpg';
 import puntaCanaG3 from '../assets/paquetes/punta-cana-6d5n/galeria-3.jpg';
+import puntaCanaG4 from '../assets/paquetes/punta-cana-6d5n/galeria-4.jpg';
 
 import sauceResortPortada from '../assets/paquetes/tarapoto-sauce-resort-4d3n/portada.jpg';
 import sauceResortG1 from '../assets/paquetes/tarapoto-sauce-resort-4d3n/galeria-1.jpg';
 import sauceResortG2 from '../assets/paquetes/tarapoto-sauce-resort-4d3n/galeria-2.jpg';
 import sauceResortG3 from '../assets/paquetes/tarapoto-sauce-resort-4d3n/galeria-3.jpg';
 import sauceResortG4 from '../assets/paquetes/tarapoto-sauce-resort-4d3n/galeria-4.jpg';
+import sauceResortG5 from '../assets/paquetes/tarapoto-sauce-resort-4d3n/galeria-5.jpg';
 
 // Clases de color del tag de esquina según tipo.
 export const TAG_CLASES = {
@@ -84,7 +90,7 @@ export const paquetes = [
 		descuento: '-45%',
 		tag: 'Imperdibles',
 		imagen: lagunaAzulPortada.src,
-		galeria: [lagunaAzulG1.src, lagunaAzulG2.src],
+		galeria: [lagunaAzulG1.src, lagunaAzulG2.src, lagunaAzulG3.src],
 		incluye: INCLUYE_DEMO,
 	},
 	{
@@ -96,7 +102,7 @@ export const paquetes = [
 		descuento: '-24%',
 		tag: 'Nuevo',
 		imagen: ahuashiyacuPortada.src,
-		galeria: [ahuashiyacuG1.src, ahuashiyacuG2.src, ahuashiyacuG3.src],
+		galeria: [ahuashiyacuG1.src, ahuashiyacuG2.src, ahuashiyacuG3.src, ahuashiyacuG4.src],
 		incluye: INCLUYE_DEMO,
 	},
 	{
@@ -108,7 +114,7 @@ export const paquetes = [
 		descuento: '-20%',
 		tag: 'Cyber',
 		imagen: altoMayoPortada.src,
-		galeria: [altoMayoG1.src, altoMayoG2.src, altoMayoG3.src, altoMayoG4.src],
+		galeria: [altoMayoG1.src, altoMayoG2.src, altoMayoG3.src, altoMayoG4.src, altoMayoG5.src],
 		incluye: INCLUYE_DEMO,
 	},
 	{
@@ -120,7 +126,7 @@ export const paquetes = [
 		descuento: '-26%',
 		tag: 'Imperdibles',
 		imagen: lamasPortada.src,
-		galeria: [lamasG1.src, lamasG2.src, lamasG3.src, lamasG4.src],
+		galeria: [lamasG1.src, lamasG2.src, lamasG3.src, lamasG4.src, lamasG5.src],
 		incluye: INCLUYE_DEMO,
 	},
 	{
@@ -132,7 +138,7 @@ export const paquetes = [
 		descuento: '-21%',
 		tag: 'Nuevo',
 		imagen: puntaCanaPortada.src,
-		galeria: [puntaCanaG1.src, puntaCanaG2.src, puntaCanaG3.src],
+		galeria: [puntaCanaG1.src, puntaCanaG2.src, puntaCanaG3.src, puntaCanaG4.src],
 		incluye: INCLUYE_DEMO,
 	},
 	{
@@ -144,7 +150,7 @@ export const paquetes = [
 		descuento: '-24%',
 		tag: 'Cyber',
 		imagen: sauceResortPortada.src,
-		galeria: [sauceResortG1.src, sauceResortG2.src, sauceResortG3.src, sauceResortG4.src],
+		galeria: [sauceResortG1.src, sauceResortG2.src, sauceResortG3.src, sauceResortG4.src, sauceResortG5.src],
 		incluye: INCLUYE_DEMO,
 	},
 ];
