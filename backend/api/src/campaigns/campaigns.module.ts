@@ -19,13 +19,11 @@ class CreateCampaignDto {
   @IsOptional() @IsString() body?: string;            // mensaje a enviar
   @IsOptional() @IsString() templateId?: string;
   @IsOptional() @IsEnum(CampaignStatus) status?: CampaignStatus;
-  @IsOptional() @IsDateString() scheduledAt?: string;
+  // Acepta null para poder "desprogramar" una campaña al editarla.
+  @IsOptional() @ValidateIf((_, v) => v !== null) @IsDateString() scheduledAt?: string | null;
   @IsOptional() @IsObject() audience?: Record<string, unknown>;
 }
-class UpdateCampaignDto extends PartialType(CreateCampaignDto) {
-  // En update permitimos null en scheduledAt para "desprogramar" una campaña.
-  @IsOptional() @ValidateIf((_, v) => v !== null) @IsDateString() scheduledAt?: string | null;
-}
+class UpdateCampaignDto extends PartialType(CreateCampaignDto) {}
 
 class AudienceQueryDto {
   @IsOptional() @IsArray() @IsString({ each: true }) tags?: string[];

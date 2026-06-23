@@ -191,7 +191,7 @@ export class FlowEngineService {
       if (ctx.resumeAt && new Date(ctx.resumeAt).getTime() <= now && ctx.resumeNodeId) {
         // Limpia el marcador de delay y continúa.
         const cleanCtx: RunContext = { customerId: ctx.customerId, vars: ctx.vars };
-        await this.prisma.flowRun.update({ where: { id: run.id }, data: { context: cleanCtx as Prisma.InputJsonValue } });
+        await this.prisma.flowRun.update({ where: { id: run.id }, data: { context: cleanCtx as unknown as Prisma.InputJsonValue } });
         await this.advance(run.id, ctx.resumeNodeId, cleanCtx);
       }
     }

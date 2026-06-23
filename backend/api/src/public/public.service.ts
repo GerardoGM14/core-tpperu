@@ -4,7 +4,7 @@ import { MessageDirection, MessageKind, MessageStatus } from '@prisma/client';
 import { FlowTriggerType } from '@prisma/client';
 import { PrismaService } from '../shared/prisma.service';
 import { WhatsappBridgeService } from '../whatsapp-bridge/whatsapp-bridge.service';
-import { EmailService } from '../email/email.module';
+import { EmailService, MailAttachment } from '../email/email.module';
 import { FlowEngineService } from '../flows/flow-engine.service';
 
 // Formatea céntimos PEN a "S/ 1,178.00" (formato que usa la landing).
@@ -339,7 +339,7 @@ export class PublicService {
     });
 
     // 3) Adjunto del voucher (si vino)
-    const attachments = [];
+    const attachments: MailAttachment[] = [];
     const voucherMatch = input.voucherBase64
       ? /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/.exec(input.voucherBase64)
       : null;
