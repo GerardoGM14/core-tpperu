@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Ico from '../../components/icons';
 import { campaignsApi } from '../../api/campaigns';
 import { documentsApi } from '../../api/documents';
+import { remindersApi } from '../../api/reminders';
 import { settingsApi } from '../../api/settings';
 
 const STATUS_PILL = {
@@ -190,10 +191,67 @@ function CampaignModal({ campaign, onClose, onCreated }) {
   );
 }
 
+// ---------- Modal: probar el envío de un recordatorio a un número real ----------
+function TestReminderModal({ rule, onClose }) {
+  const [phone, setPhone] = React.useState('');
+  const [name, setName] = React.useState('María');
+
+  const test = useMutation({
+    mutationFn: () => remindersApi.test({
+      phone: phone.trim(),
+      template: rule?.template,
+      when: rule?.when,
+      name: name.trim() || undefined,
+    }),
+    onSuccess: (res) => {
+      window.toast?.(`Mensaje de prueba enviado a ${res?.phone || phone}`, { label: 'WhatsApp', kind: 'wa' });
+      onClose();
+    },
+    onError: (err) => {
+      const msg = err.status === 502 ? 'WhatsApp no está conectado.' : (err.message || 'No se pudo enviar la prueba.');
+      window.toast?.(msg, { label: 'Error', kind: 'accent' });
+    },
+  });
+
+  const canSend = phone.replace(/\D/g, '').length >= 9 && !test.isPending;
+
+  return (
+    <div className="m-back" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="m-card" style={{ width: 460, maxWidth: '92vw' }}>
+        <div className="m-h">
+          <h2 className="h2">Probar envío</h2>
+          <button type="button" className="iconbtn" data-handled="1" onClick={onClose} style={{ marginLeft: 'auto' }}>✕</button>
+        </div>
+        <div className="m-b" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <p className="lead" style={{ fontSize: 12, marginTop: -2 }}>Envía este recordatorio (<b>{rule?.label || '—'}</b>) a un número real para verificar antes de activar.</p>
+          <div className="field">
+            <label>Número WhatsApp</label>
+            <input className="input mono" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+51 987 654 321" autoFocus />
+          </div>
+          <div className="field">
+            <label>Nombre de prueba (reemplaza <span className="mono">{'{nombre}'}</span>)</label>
+            <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="María" />
+          </div>
+          <div className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>
+            Plantilla: {rule?.template || '—'} · se envía por la sesión de WhatsApp conectada.
+          </div>
+        </div>
+        <div className="m-f">
+          <button type="button" className="btn ghost" data-handled="1" onClick={onClose}>Cancelar</button>
+          <button type="button" className="btn" data-handled="1" disabled={!canSend} onClick={() => test.mutate()}>
+            <Ico.send />{test.isPending ? 'Enviando…' : 'Enviar prueba'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function Recordatorios() {
   const [tab, setTab] = React.useState('pre-trip');
   const [picked, setPicked] = React.useState('R-24');
   const [modal, setModal] = React.useState(null); // null | {} (nueva) | campaign (editar)
+  const [testRule, setTestRule] = React.useState(null); // regla a probar (abre TestReminderModal)
   const qc = useQueryClient();
 
   const { data: campaigns = [], isLoading } = useQuery({
@@ -352,7 +410,7 @@ export function Recordatorios() {
                 </div>
               </div>
               <div className="spacer-s" />
-              <button className="btn" style={{ width: '100%' }}><Ico.send />Probar envío a mi número</button>
+              <button className="btn" style={{ width: '100%' }} data-handled="1" onClick={() => setTestRule(r)}><Ico.send />Probar envío a mi número</button>
             </div>
           </div>
         </div>
@@ -475,6 +533,7 @@ export function Recordatorios() {
       )}
 
       {modal && <CampaignModal campaign={modal.id ? modal : null} onClose={() => setModal(null)} onCreated={() => setTab('mass')} />}
+      {testRule && <TestReminderModal rule={testRule} onClose={() => setTestRule(null)} />}
     </div>
   );
 }
