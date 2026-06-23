@@ -78,7 +78,26 @@ jobs:
           ssh -i ~/.ssh/deploy_key root@"${{ secrets.VPS_HOST }}" \
             "cd /opt/tpp && docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build"
 
+      # Al recrear el contenedor api/wa-daemon, Docker les da una IP interna
+      # nueva; nginx (que no se recrea) cachea la IP vieja y devuelve 502.
+      # Reiniciar nginx lo obliga a re-resolver y elimina el 502 recurrente.
+      - name: Reiniciar nginx (re-resolver IP del API)
+        run: |
+          ssh -i ~/.ssh/deploy_key root@"${{ secrets.VPS_HOST }}" \
+            "cd /opt/tpp && docker compose -f docker-compose.prod.yml --env-file .env.prod restart nginx"
+
+      # La API tarda en levantar (NestJS + prisma migrate deploy). Reintentamos
+      # el healthcheck hasta 12 veces (≈60s) antes de dar el deploy por fallido.
       - name: Verificar salud
         run: |
           ssh -i ~/.ssh/deploy_key root@"${{ secrets.VPS_HOST }}" \
-            "cd /opt/tpp && docker compose -f docker-compose.prod.yml --env-file .env.prod ps && curl -sf http://localhost/health"
+            "cd /opt/tpp && docker compose -f docker-compose.prod.yml --env-file .env.prod ps"
+          ssh -i ~/.ssh/deploy_key root@"${{ secrets.VPS_HOST }}" '
+            for i in $(seq 1 12); do
+              if curl -sf http://localhost/health >/dev/null; then
+                echo "Salud OK (intento $i)"; exit 0;
+              fi
+              echo "Esperando a la API… (intento $i)"; sleep 5;
+            done
+            echo "La API no respondió a /health tras 60s"; exit 1
+          '
