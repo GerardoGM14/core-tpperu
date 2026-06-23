@@ -2,7 +2,7 @@ import { PartialType } from '@nestjs/mapped-types';
 import { Module, Body, Controller, Delete, Get, Injectable, Logger, NotFoundException, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { AuthGuard } from '@nestjs/passport';
-import { IsArray, IsDateString, IsEnum, IsObject, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsDateString, IsEnum, IsObject, IsOptional, IsString, ValidateIf } from 'class-validator';
 import { CampaignStatus, MessageDirection, MessageKind, MessageStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../shared/prisma.service';
 import { WhatsappBridgeService } from '../whatsapp-bridge/whatsapp-bridge.service';
@@ -22,7 +22,10 @@ class CreateCampaignDto {
   @IsOptional() @IsDateString() scheduledAt?: string;
   @IsOptional() @IsObject() audience?: Record<string, unknown>;
 }
-class UpdateCampaignDto extends PartialType(CreateCampaignDto) {}
+class UpdateCampaignDto extends PartialType(CreateCampaignDto) {
+  // En update permitimos null en scheduledAt para "desprogramar" una campaña.
+  @IsOptional() @ValidateIf((_, v) => v !== null) @IsDateString() scheduledAt?: string | null;
+}
 
 class AudienceQueryDto {
   @IsOptional() @IsArray() @IsString({ each: true }) tags?: string[];
@@ -59,12 +62,16 @@ class CampaignsService {
   async update(id: string, dto: UpdateCampaignDto) {
     await this.findOne(id);
     const { scheduledAt, audience, ...rest } = dto;
+    // scheduledAt: si viene fecha la usa; si viene null la limpia (desprograma);
+    // si no viene (undefined) la deja como está.
+    const scheduledData =
+      scheduledAt === undefined ? {} : { scheduledAt: scheduledAt ? new Date(scheduledAt) : null };
     return this.prisma.campaign.update({
       where: { id },
       data: {
         ...rest,
-        scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
-        audience: audience as Prisma.InputJsonValue,
+        ...scheduledData,
+        audience: audience === undefined ? undefined : (audience as Prisma.InputJsonValue),
       },
     });
   }

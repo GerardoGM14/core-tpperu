@@ -2,15 +2,8 @@ import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Ico from '../../components/icons';
 import { campaignsApi } from '../../api/campaigns';
+import { documentsApi } from '../../api/documents';
 import { settingsApi } from '../../api/settings';
-
-// Tags de segmentación disponibles para la audiencia de una campaña.
-const AUDIENCE_TAGS = [
-  { tag: 'lead-landing', label: 'Leads de la web' },
-  { tag: 'comprador',    label: 'Compradores' },
-  { tag: 'tarapoto',     label: 'Tarapoto' },
-  { tag: 'inactivo-90d', label: 'Inactivos 90d' },
-];
 
 const STATUS_PILL = {
   DRAFT:     { cls: '',     label: 'borrador',   dot: 'var(--muted)' },
@@ -42,6 +35,9 @@ function CampaignModal({ campaign, onClose, onCreated }) {
   const [modo, setModo] = React.useState(campaign?.scheduledAt ? 'schedule' : 'now');
   const [scheduledAt, setScheduledAt] = React.useState(campaign?.scheduledAt?.slice(0, 16) || '');
 
+  // Etiquetas reales de los clientes (con conteo) para segmentar la audiencia.
+  const { data: realTags = [] } = useQuery({ queryKey: ['customer-tags'], queryFn: documentsApi.customerTags });
+
   // Cuenta de destinatarios según los tags seleccionados.
   const { data: audience } = useQuery({
     queryKey: ['audience-count', tags],
@@ -55,14 +51,28 @@ function CampaignModal({ campaign, onClose, onCreated }) {
       const created = await campaignsApi.create(data);
       // Si es envío inmediato, dispara el send apenas se crea.
       if (data.status === 'DRAFT' && modo === 'now') {
-        await campaignsApi.send(created.id);
+        const res = await campaignsApi.send(created.id);
+        return { created, res };
       }
-      return created;
+      return { created };
     },
-    onSuccess: () => {
+    onSuccess: ({ res } = {}) => {
       qc.invalidateQueries({ queryKey: ['campaigns'] });
+      if (editing) {
+        window.toast?.('Campaña actualizada', { label: 'Campañas', kind: 'good' });
+      } else if (modo === 'schedule') {
+        window.toast?.('Campaña programada · la verás en la lista', { label: 'Campañas', kind: 'good' });
+      } else {
+        const stats = res?.stats || {};
+        const extra = stats.failed ? ` · ${stats.failed} falló(aron)` : '';
+        window.toast?.(`Campaña enviada a ${stats.sent ?? 0} cliente(s)${extra}`, { label: 'Campañas', kind: stats.failed ? 'accent' : 'good' });
+      }
       if (!editing && onCreated) onCreated(); // lleva a la pestaña de campañas
       onClose();
+    },
+    onError: (err) => {
+      const msg = err.status === 502 ? 'WhatsApp no está conectado.' : (err.message || 'No se pudo guardar la campaña.');
+      window.toast?.(msg, { label: 'Error', kind: 'accent' });
     },
   });
 
@@ -72,13 +82,23 @@ function CampaignModal({ campaign, onClose, onCreated }) {
     e.preventDefault();
     if (!name.trim() || !body.trim()) return;
     if (modo === 'schedule' && !scheduledAt) return;
-    save.mutate({
+    const data = {
       name: name.trim(),
       body: body.trim(),
       audience: { tags },
-      status: modo === 'schedule' ? 'SCHEDULED' : 'DRAFT',
-      scheduledAt: modo === 'schedule' ? new Date(scheduledAt).toISOString() : undefined,
-    });
+    };
+    if (editing) {
+      // Al editar, no resucitamos campañas ya enviadas: solo ajustamos
+      // la programación si la campaña sigue programada o en borrador.
+      if (campaign.status === 'SCHEDULED' || campaign.status === 'DRAFT') {
+        data.status = modo === 'schedule' ? 'SCHEDULED' : 'DRAFT';
+        data.scheduledAt = modo === 'schedule' ? new Date(scheduledAt).toISOString() : null;
+      }
+    } else {
+      data.status = modo === 'schedule' ? 'SCHEDULED' : 'DRAFT';
+      data.scheduledAt = modo === 'schedule' ? new Date(scheduledAt).toISOString() : undefined;
+    }
+    save.mutate(data);
   };
 
   // Texto del botón principal según el modo.
@@ -108,22 +128,34 @@ function CampaignModal({ campaign, onClose, onCreated }) {
           </div>
 
           <div className="field">
-            <label>Audiencia</label>
+            <label>Audiencia (a quién se envía)</label>
             <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
-              {AUDIENCE_TAGS.map((a) => (
+              <button type="button"
+                className={'btn ghost sm ' + (tags.length === 0 ? 'active' : '')}
+                onClick={() => setTags([])}>
+                Toda la base de clientes
+              </button>
+              {realTags.map((a) => (
                 <button type="button" key={a.tag}
                   className={'btn ghost sm ' + (tags.includes(a.tag) ? 'active' : '')}
                   onClick={() => toggleTag(a.tag)}>
-                  {a.label}
+                  {a.tag} <span style={{ color: 'var(--muted)' }}>· {a.count}</span>
                 </button>
               ))}
             </div>
-            <div className="mono" style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>
-              {tags.length === 0 ? 'Sin filtros → se enviará a TODOS los clientes' : ''} · {count} destinatario{count === 1 ? '' : 's'}
+            <div className="mono" style={{ fontSize: 11, color: tags.length && count === 0 ? 'var(--bad)' : 'var(--muted)', marginTop: 6 }}>
+              {tags.length === 0
+                ? `Se enviará a TODOS los clientes · ${count} destinatario${count === 1 ? '' : 's'}`
+                : `Etiquetas: ${tags.join(', ')} · ${count} destinatario${count === 1 ? '' : 's'}${count === 0 ? ' ⚠ nadie coincide' : ''}`}
             </div>
+            {realTags.length === 0 && (
+              <div className="mono" style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+                Aún no hay etiquetas en tus clientes. Etiquétalos en la vista Clientes para segmentar.
+              </div>
+            )}
           </div>
 
-          {!editing && (
+          {(!editing || campaign.status === 'DRAFT' || campaign.status === 'SCHEDULED') && (
             <div className="field">
               <label>¿Cuándo enviar?</label>
               <div className="row" style={{ gap: 6 }}>
@@ -140,7 +172,7 @@ function CampaignModal({ campaign, onClose, onCreated }) {
               )}
               <div className="mono" style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>
                 {modo === 'now'
-                  ? 'El mensaje saldrá por WhatsApp de inmediato.'
+                  ? (editing ? 'Al guardar quedará como borrador, lista para enviar con el botón Enviar.' : 'El mensaje saldrá por WhatsApp de inmediato.')
                   : 'Se enviará automáticamente a la fecha y hora elegidas.'}
               </div>
             </div>
@@ -171,11 +203,23 @@ export function Recordatorios() {
 
   const send = useMutation({
     mutationFn: (id) => campaignsApi.send(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['campaigns'] }),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['campaigns'] });
+      const stats = res?.stats || {};
+      const extra = stats.failed ? ` · ${stats.failed} falló(aron)` : '';
+      window.toast?.(`Enviada a ${stats.sent ?? 0} cliente(s)${extra}`, { label: 'Campañas', kind: stats.failed ? 'accent' : 'good' });
+    },
+    onError: (err) => {
+      const msg = err.status === 502 ? 'WhatsApp no está conectado.' : (err.message || 'No se pudo enviar.');
+      window.toast?.(msg, { label: 'Error', kind: 'accent' });
+    },
   });
   const remove = useMutation({
     mutationFn: (id) => campaignsApi.remove(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['campaigns'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['campaigns'] });
+      window.toast?.('Campaña eliminada', { label: 'Campañas', kind: 'accent' });
+    },
   });
 
   // ---- Config persistente: recordatorios pre-trip + post-servicio ----
@@ -217,8 +261,8 @@ export function Recordatorios() {
           <p className="lead" style={{ marginTop: 4 }}>Comunicación previa al viaje, post-servicio y mensajes masivos a tu base de clientes.</p>
         </div>
         <div className="row" style={{ gap: 8 }}>
-          <button className="btn ghost"><Ico.eye />Programación</button>
-          <button className="btn" onClick={() => setModal({})}><Ico.plus />Nueva campaña</button>
+          <button className="btn ghost" onClick={() => setTab('mass')}><Ico.eye />Ver campañas</button>
+          <button className="btn" onClick={() => { setTab('mass'); setModal({}); }}><Ico.plus />Nueva campaña</button>
         </div>
       </div>
 
@@ -228,7 +272,7 @@ export function Recordatorios() {
         <div className="stat"><div className="label">Recordatorios hoy</div><div className="value">38</div><div className="delta"><span className="mono">14 enviados · 24 programados</span></div></div>
         <div className="stat"><div className="label">Tasa de lectura</div><div className="value">96<span style={{ fontSize: 14, color: 'var(--muted)' }}>%</span></div><div className="delta up"><Ico.up />+0.8 pts</div></div>
         <div className="stat"><div className="label">NPS post-servicio (30d)</div><div className="value">8.7</div><div className="delta up"><Ico.up />+0.3</div></div>
-        <div className="stat"><div className="label">Campañas activas</div><div className="value">{campaigns.filter((c) => c.status === 'COMPLETED' || c.status === 'SCHEDULED').length}</div><div className="delta"><span className="mono">{campaigns.length} en total</span></div></div>
+        <div className="stat"><div className="label">Campañas programadas</div><div className="value">{campaigns.filter((c) => c.status === 'SCHEDULED').length}</div><div className="delta"><span className="mono">{campaigns.filter((c) => c.status === 'COMPLETED').length} enviadas · {campaigns.length} en total</span></div></div>
       </div>
 
       <div className="spacer-m" />
@@ -373,7 +417,10 @@ export function Recordatorios() {
       {tab === 'mass' && (
         <div className="card">
           <div className="card-h">
-            <h2 className="h2">Campañas masivas</h2>
+            <div>
+              <h2 className="h2">Campañas masivas</h2>
+              <p className="lead" style={{ marginTop: 2, fontSize: 12 }}>Envía promociones, nuevas rutas, cambios operativos o avisos a toda tu base o a un grupo de clientes, al instante o programado.</p>
+            </div>
             <div style={{ flex: 1 }} />
             <button className="btn" onClick={() => setModal({})}><Ico.plus />Nueva campaña</button>
           </div>
@@ -391,24 +438,28 @@ export function Recordatorios() {
                   const pill = STATUS_PILL[c.status] || STATUS_PILL.DRAFT;
                   const tags = c.audience?.tags || [];
                   const stats = c.stats || {};
-                  const canSend = c.status !== 'RUNNING';
+                  const sending = send.isPending && send.variables === c.id;
+                  // Solo tiene sentido enviar manualmente lo que no se ha enviado y no está en curso.
+                  const canSend = c.status !== 'RUNNING' && c.status !== 'COMPLETED';
                   return (
                     <tr key={c.id}>
                       <td>
                         <div style={{ fontSize: 12, fontWeight: 500 }}>{c.name}</div>
                         {c.body && <div className="cell-id" style={{ maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.body}</div>}
                       </td>
-                      <td><span className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>{tags.length ? tags.join(', ') : 'Todos'}</span></td>
-                      <td className="cell-id">{fmt(c.scheduledAt)}</td>
+                      <td><span className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>{tags.length ? tags.join(', ') : 'Toda la base'}</span></td>
+                      <td className="cell-id">{c.scheduledAt ? fmt(c.scheduledAt) : (c.status === 'COMPLETED' ? 'Inmediata' : '—')}</td>
                       <td className="cell-num" style={{ textAlign: 'right' }}>{stats.sent ?? '—'}</td>
                       <td className="cell-num" style={{ textAlign: 'right', color: stats.failed ? 'var(--bad)' : 'var(--muted)' }}>{stats.failed ?? '—'}</td>
                       <td><span className={'pill ' + pill.cls}><span className="d" style={pill.dot ? { background: pill.dot } : undefined} />{pill.label}</span></td>
                       <td>
                         <div className="row" style={{ gap: 4, justifyContent: 'flex-end' }}>
-                          <button className="btn ghost sm" disabled={!canSend || send.isPending}
-                            onClick={() => { if (confirm(`¿Enviar la campaña "${c.name}" ahora?`)) send.mutate(c.id); }}>
-                            <Ico.send />{send.isPending && send.variables === c.id ? 'Enviando…' : 'Enviar'}
-                          </button>
+                          {canSend && (
+                            <button className="btn ghost sm" disabled={sending}
+                              onClick={() => { if (confirm(`¿Enviar la campaña "${c.name}" ahora a sus destinatarios?`)) send.mutate(c.id); }}>
+                              <Ico.send />{sending ? 'Enviando…' : (c.status === 'SCHEDULED' ? 'Enviar ya' : 'Enviar')}
+                            </button>
+                          )}
                           <button className="iconbtn" title="Editar" onClick={() => setModal(c)}><Ico.pencil /></button>
                           <button className="iconbtn" title="Eliminar"
                             onClick={() => { if (confirm('¿Eliminar esta campaña?')) remove.mutate(c.id); }}><Ico.trash /></button>
