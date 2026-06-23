@@ -1,0 +1,16 @@
+PAQUETE: Punta Cana 6D/5N todo incluido
+================================================
+
+Sube en ESTA carpeta:
+
+1) portada.jpg   -> foto principal (la que se ve en la card del carrusel)
+2) galeria-1.jpg -> miniatura 1 del detalle
+3) galeria-2.jpg -> miniatura 2
+4) galeria-3.jpg -> miniatura 3
+5) galeria-4.jpg -> miniatura 4
+6) galeria-5.jpg -> miniatura 5
+
+Notas:
+- Pueden ser .jpg, .png o .webp (Astro las optimiza solas).
+- La "portada" sale horizontal (paisaje). Las de galeria tambien.
+- Si tienes menos de 5 para la galeria, sube las que tengas y avisa cuantas.
