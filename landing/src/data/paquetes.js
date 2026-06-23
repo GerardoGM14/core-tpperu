@@ -18,6 +18,41 @@
 //    incluye      → bullets de "¿Qué incluye en el paquete?"
 // ============================================================
 
+// --- Fotos reales de cada paquete (assets/paquetes/<slug>/) ---
+// Astro optimiza estos imports; usamos .src para tener la ruta string
+// (la landing consume `imagen`/`galeria` como strings: <img src>, data-*, etc.)
+import lagunaAzulPortada from '../assets/paquetes/tarapoto-laguna-azul-7d6n/portada.jpg';
+import lagunaAzulG1 from '../assets/paquetes/tarapoto-laguna-azul-7d6n/galeria-1.jpg';
+import lagunaAzulG2 from '../assets/paquetes/tarapoto-laguna-azul-7d6n/galeria-2.jpg';
+
+import ahuashiyacuPortada from '../assets/paquetes/cataratas-ahuashiyacu-4d3n/portada.jpg';
+import ahuashiyacuG1 from '../assets/paquetes/cataratas-ahuashiyacu-4d3n/galeria-1.jpg';
+import ahuashiyacuG2 from '../assets/paquetes/cataratas-ahuashiyacu-4d3n/galeria-2.jpg';
+import ahuashiyacuG3 from '../assets/paquetes/cataratas-ahuashiyacu-4d3n/galeria-3.jpg';
+
+import altoMayoPortada from '../assets/paquetes/alto-mayo-moyobamba-rioja-5d4n/portada.jpg';
+import altoMayoG1 from '../assets/paquetes/alto-mayo-moyobamba-rioja-5d4n/galeria-1.jpg';
+import altoMayoG2 from '../assets/paquetes/alto-mayo-moyobamba-rioja-5d4n/galeria-2.jpg';
+import altoMayoG3 from '../assets/paquetes/alto-mayo-moyobamba-rioja-5d4n/galeria-3.jpg';
+import altoMayoG4 from '../assets/paquetes/alto-mayo-moyobamba-rioja-5d4n/galeria-4.jpg';
+
+import lamasPortada from '../assets/paquetes/lamas-nativa-castillo-3d2n/portada.jpg';
+import lamasG1 from '../assets/paquetes/lamas-nativa-castillo-3d2n/galeria-1.jpg';
+import lamasG2 from '../assets/paquetes/lamas-nativa-castillo-3d2n/galeria-2.jpg';
+import lamasG3 from '../assets/paquetes/lamas-nativa-castillo-3d2n/galeria-3.jpg';
+import lamasG4 from '../assets/paquetes/lamas-nativa-castillo-3d2n/galeria-4.jpg';
+
+import puntaCanaPortada from '../assets/paquetes/punta-cana-6d5n/portada.jpg';
+import puntaCanaG1 from '../assets/paquetes/punta-cana-6d5n/galeria-1.jpg';
+import puntaCanaG2 from '../assets/paquetes/punta-cana-6d5n/galeria-2.jpg';
+import puntaCanaG3 from '../assets/paquetes/punta-cana-6d5n/galeria-3.jpg';
+
+import sauceResortPortada from '../assets/paquetes/tarapoto-sauce-resort-4d3n/portada.jpg';
+import sauceResortG1 from '../assets/paquetes/tarapoto-sauce-resort-4d3n/galeria-1.jpg';
+import sauceResortG2 from '../assets/paquetes/tarapoto-sauce-resort-4d3n/galeria-2.jpg';
+import sauceResortG3 from '../assets/paquetes/tarapoto-sauce-resort-4d3n/galeria-3.jpg';
+import sauceResortG4 from '../assets/paquetes/tarapoto-sauce-resort-4d3n/galeria-4.jpg';
+
 // Clases de color del tag de esquina según tipo.
 export const TAG_CLASES = {
 	Imperdibles: 'bg-[#f26304] text-white',
@@ -39,16 +74,6 @@ const INCLUYE_DEMO = [
 	'Entradas, guía y más',
 ];
 
-// Galería de ejemplo (compartida por ahora).
-const GALERIA_DEMO = [
-	'https://images.unsplash.com/photo-1531168556467-80aace0d0144?w=600&q=80',
-	'https://images.unsplash.com/photo-1437846972679-9e6e537be46e?w=600&q=80',
-	'https://images.unsplash.com/photo-1518182170546-07661fd94144?w=600&q=80',
-	'https://images.unsplash.com/photo-1472396961693-142e6e269027?w=600&q=80',
-	'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=600&q=80',
-	'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=600&q=80',
-];
-
 export const paquetes = [
 	{
 		slug: 'tarapoto-laguna-azul-7d6n',
@@ -58,8 +83,8 @@ export const paquetes = [
 		precioAntes: 'S/ 829.00',
 		descuento: '-45%',
 		tag: 'Imperdibles',
-		imagen: 'https://images.unsplash.com/photo-1531168556467-80aace0d0144?w=500&q=80',
-		galeria: GALERIA_DEMO,
+		imagen: lagunaAzulPortada.src,
+		galeria: [lagunaAzulG1.src, lagunaAzulG2.src],
 		incluye: INCLUYE_DEMO,
 	},
 	{
@@ -70,8 +95,8 @@ export const paquetes = [
 		precioAntes: 'S/ 980.00',
 		descuento: '-24%',
 		tag: 'Nuevo',
-		imagen: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=500&q=80',
-		galeria: GALERIA_DEMO,
+		imagen: ahuashiyacuPortada.src,
+		galeria: [ahuashiyacuG1.src, ahuashiyacuG2.src, ahuashiyacuG3.src],
 		incluye: INCLUYE_DEMO,
 	},
 	{
@@ -82,8 +107,8 @@ export const paquetes = [
 		precioAntes: 'S/ 1,150.00',
 		descuento: '-20%',
 		tag: 'Cyber',
-		imagen: 'https://images.unsplash.com/photo-1437846972679-9e6e537be46e?w=500&q=80',
-		galeria: GALERIA_DEMO,
+		imagen: altoMayoPortada.src,
+		galeria: [altoMayoG1.src, altoMayoG2.src, altoMayoG3.src, altoMayoG4.src],
 		incluye: INCLUYE_DEMO,
 	},
 	{
@@ -94,8 +119,8 @@ export const paquetes = [
 		precioAntes: 'S/ 620.00',
 		descuento: '-26%',
 		tag: 'Imperdibles',
-		imagen: 'https://images.unsplash.com/photo-1518182170546-07661fd94144?w=500&q=80',
-		galeria: GALERIA_DEMO,
+		imagen: lamasPortada.src,
+		galeria: [lamasG1.src, lamasG2.src, lamasG3.src, lamasG4.src],
 		incluye: INCLUYE_DEMO,
 	},
 	{
@@ -106,8 +131,8 @@ export const paquetes = [
 		precioAntes: 'S/ 3,800.00',
 		descuento: '-21%',
 		tag: 'Nuevo',
-		imagen: 'https://images.unsplash.com/photo-1472396961693-142e6e269027?w=500&q=80',
-		galeria: GALERIA_DEMO,
+		imagen: puntaCanaPortada.src,
+		galeria: [puntaCanaG1.src, puntaCanaG2.src, puntaCanaG3.src],
 		incluye: INCLUYE_DEMO,
 	},
 	{
@@ -118,8 +143,8 @@ export const paquetes = [
 		precioAntes: 'S/ 980.00',
 		descuento: '-24%',
 		tag: 'Cyber',
-		imagen: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=500&q=80',
-		galeria: GALERIA_DEMO,
+		imagen: sauceResortPortada.src,
+		galeria: [sauceResortG1.src, sauceResortG2.src, sauceResortG3.src, sauceResortG4.src],
 		incluye: INCLUYE_DEMO,
 	},
 ];
