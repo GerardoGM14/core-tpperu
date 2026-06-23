@@ -101,8 +101,9 @@ model Customer {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  orders        Order[]
-  conversations Conversation[]
+  orders             Order[]
+  conversations      Conversation[]
+  documentDeliveries DocumentDelivery[]
 
   @@index([phone])
 }
@@ -445,6 +446,36 @@ model Document {
   metadata    Json?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+
+  deliveries  DocumentDelivery[]
+}
+
+// Estado del envío de un documento a UN cliente.
+enum DocumentDeliveryStatus {
+  SCHEDULED   // programado, esperando su fecha
+  SENT        // entregado por WhatsApp
+  FAILED      // falló el envío
+}
+
+// Un envío de un documento a un cliente. Puede ser inmediato o programado
+// para una fecha (scheduledAt). Un envío en lote crea un registro por cliente.
+model DocumentDelivery {
+  id             String                 @id @default(cuid())
+  documentId     String
+  document       Document               @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  customerId     String
+  customer       Customer               @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  conversationId String?                                       // se resuelve al enviar
+  caption        String?
+  status         DocumentDeliveryStatus @default(SCHEDULED)
+  scheduledAt    DateTime                                      // cuándo debe enviarse
+  sentAt         DateTime?
+  errorReason    String?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  @@index([status, scheduledAt])
+  @@index([documentId])
 }
 
 // ============================================================
