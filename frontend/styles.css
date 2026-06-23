@@ -471,6 +471,19 @@ input, select, textarea { font-family: inherit; font-size: inherit; }
 .pill.ink    { color: var(--paper); background: var(--ink); border-color: var(--ink); }
 .pill .d { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
 
+/* Chips seleccionables (filtros por etiqueta) */
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  border: 1px solid var(--hair);
+  background: var(--surface);
+  color: var(--ink);
+  transition: border-color .12s, background .12s;
+}
+.chip:hover { border-color: var(--accent); }
+
 /* ---------- Tables ---------- */
 table.t {
   width: 100%;

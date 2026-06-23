@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Ico from '../../components/icons';
 import { documentsApi } from '../../api/documents';
 import { catalogApi } from '../../api/catalog';
-import { conversationsApi, fileToBase64 } from '../../api/conversations';
+import { customersApi } from '../../api/customers';
+import { fileToBase64 } from '../../api/conversations';
 
 const KINDS = [
   { value: 'ITINERARY', label: 'Itinerario' },
@@ -21,6 +22,7 @@ const fmtSize = (bytes) => {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 };
 const fmtDate = (iso) => new Date(iso).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' });
+const fmtDateTime = (iso) => new Date(iso).toLocaleString('es-PE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 
 function DocumentModal({ doc, packages, onClose }) {
   const qc = useQueryClient();
@@ -150,20 +152,46 @@ function DocumentModal({ doc, packages, onClose }) {
   );
 }
 
-// Modal para enviar un documento a una conversación por WhatsApp.
+// Devuelve un datetime-local (string) por defecto: mañana a las 9:00.
+function defaultSchedule() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  d.setHours(9, 0, 0, 0);
+  // a formato yyyy-MM-ddTHH:mm respetando zona local
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// Modal para enviar/programar un documento a uno o varios clientes,
+// con filtro por etiqueta para agrupar destinatarios.
 function SendDocModal({ doc, onClose }) {
   const qc = useQueryClient();
   const [search, setSearch] = React.useState('');
   const [caption, setCaption] = React.useState('');
+  const [activeTag, setActiveTag] = React.useState('');           // etiqueta seleccionada como filtro
+  const [selected, setSelected] = React.useState(() => new Set()); // customerIds elegidos
+  const [modo, setModo] = React.useState('now');                  // 'now' | 'schedule'
+  const [scheduledAt, setScheduledAt] = React.useState(defaultSchedule);
 
-  const { data: convos = [], isLoading } = useQuery({ queryKey: ['conversations'], queryFn: conversationsApi.list });
+  const { data: customers = [], isLoading } = useQuery({ queryKey: ['customers'], queryFn: customersApi.list });
+  const { data: tags = [] } = useQuery({ queryKey: ['customer-tags'], queryFn: documentsApi.customerTags });
 
   const sendMut = useMutation({
-    mutationFn: (conversationId) => documentsApi.sendToConversation(conversationId, doc.id, caption.trim() || undefined),
-    onSuccess: () => {
+    mutationFn: () => documentsApi.send(doc.id, {
+      customerIds: [...selected],
+      caption: caption.trim() || undefined,
+      scheduledAt: modo === 'schedule' ? new Date(scheduledAt).toISOString() : undefined,
+    }),
+    onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['documents'] });
+      qc.invalidateQueries({ queryKey: ['document-scheduled'] });
       qc.invalidateQueries({ queryKey: ['conversations'] });
-      window.toast?.('Documento enviado por WhatsApp', { label: 'Documentos', kind: 'good' });
+      if (res?.scheduled) {
+        window.toast?.(`${res.scheduled} envío(s) programado(s)`, { label: 'Documentos', kind: 'good' });
+      } else {
+        const extra = res?.failed ? ` · ${res.failed} falló(aron)` : '';
+        window.toast?.(`${res?.sent || 0} enviado(s) por WhatsApp${extra}`, { label: 'Documentos', kind: res?.failed ? 'accent' : 'good' });
+      }
       onClose();
     },
     onError: (err) => {
@@ -172,41 +200,119 @@ function SendDocModal({ doc, onClose }) {
     },
   });
 
-  const nameOf = (c) => c?.customer?.fullName || c?.displayName || ('+' + (c?.remoteJid || '').split('@')[0]);
+  const nameOf = (c) => c?.fullName || (c?.phone || '');
   const q = search.trim().toLowerCase();
-  const filtered = q ? convos.filter((c) => nameOf(c).toLowerCase().includes(q)) : convos;
+  const filtered = customers.filter((c) => {
+    if (activeTag && !(c.tags || []).includes(activeTag)) return false;
+    if (q && !nameOf(c).toLowerCase().includes(q) && !(c.phone || '').includes(q)) return false;
+    return true;
+  });
+
+  const toggle = (id) => setSelected((prev) => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+  // Selecciona/deselecciona todos los visibles según el filtro actual.
+  const allVisibleSelected = filtered.length > 0 && filtered.every((c) => selected.has(c.id));
+  const toggleAllVisible = () => setSelected((prev) => {
+    const next = new Set(prev);
+    if (allVisibleSelected) filtered.forEach((c) => next.delete(c.id));
+    else filtered.forEach((c) => next.add(c.id));
+    return next;
+  });
+
+  const canSend = selected.size > 0 && !sendMut.isPending && (modo === 'now' || !!scheduledAt);
 
   return (
     <div className="m-back" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="m-card" style={{ width: 460, maxHeight: '82vh' }}>
+      <div className="m-card" style={{ width: 480, maxHeight: '88vh', display: 'flex', flexDirection: 'column' }}>
         <div className="m-h">
           <span style={{ color: 'var(--accent)', display: 'inline-flex' }}><Ico.doc /></span>
           <h2 className="h2">Enviar "{doc.name}"</h2>
           <button type="button" className="iconbtn" data-handled="1" onClick={onClose} style={{ marginLeft: 'auto' }}>✕</button>
         </div>
-        <div className="m-b" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="m-b" style={{ display: 'flex', flexDirection: 'column', gap: 10, overflow: 'auto' }}>
           <div className="field">
             <label>Mensaje (opcional)</label>
             <input className="input" value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Aquí tienes tu itinerario 🌿" />
           </div>
-          <div className="topbar-search" style={{ width: '100%' }}>
-            <Ico.search /><input placeholder="Buscar conversación..." value={search} onChange={(e) => setSearch(e.target.value)} />
-          </div>
-          <div style={{ border: '1px solid var(--hair)', borderRadius: 6, maxHeight: 320, overflow: 'auto' }}>
-            {isLoading && <div style={{ padding: 16, textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>Cargando…</div>}
-            {!isLoading && filtered.length === 0 && <div style={{ padding: 16, textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>Sin conversaciones.</div>}
-            {filtered.map((c) => (
-              <div key={c.id}
-                onClick={() => !sendMut.isPending && sendMut.mutate(c.id)}
-                style={{ padding: '10px 12px', borderBottom: '1px solid var(--hair)', cursor: 'pointer', opacity: sendMut.isPending ? 0.5 : 1 }}
-                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--paper)'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
-                <div style={{ fontSize: 12, fontWeight: 500 }}>{nameOf(c)}</div>
-                <div className="mono" style={{ fontSize: 10, color: 'var(--muted)' }}>{'+' + (c.remoteJid || '').split('@')[0]}</div>
+
+          {/* Filtro por etiqueta para agrupar destinatarios */}
+          {tags.length > 0 && (
+            <div className="field">
+              <label>Filtrar por etiqueta</label>
+              <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+                <button type="button" className="chip" data-handled="1"
+                  onClick={() => setActiveTag('')}
+                  style={{ cursor: 'pointer', borderColor: !activeTag ? 'var(--accent)' : 'var(--hair)', background: !activeTag ? 'var(--paper)' : 'transparent', fontSize: 11 }}>
+                  Todos
+                </button>
+                {tags.map(({ tag, count }) => (
+                  <button key={tag} type="button" className="chip" data-handled="1"
+                    onClick={() => setActiveTag(activeTag === tag ? '' : tag)}
+                    style={{ cursor: 'pointer', borderColor: activeTag === tag ? 'var(--accent)' : 'var(--hair)', background: activeTag === tag ? 'var(--paper)' : 'transparent', fontSize: 11 }}>
+                    {tag} <span style={{ color: 'var(--muted)' }}>· {count}</span>
+                  </button>
+                ))}
               </div>
+            </div>
+          )}
+
+          <div className="topbar-search" style={{ width: '100%' }}>
+            <Ico.search /><input placeholder="Buscar cliente..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+
+          {/* Lista de clientes con checkbox */}
+          <div className="row between" style={{ fontSize: 11, color: 'var(--muted)' }}>
+            <span>{selected.size} seleccionado(s)</span>
+            {filtered.length > 0 && (
+              <button type="button" className="btn ghost" data-handled="1" style={{ padding: '2px 8px', fontSize: 11 }} onClick={toggleAllVisible}>
+                {allVisibleSelected ? 'Quitar todos' : 'Seleccionar todos'}
+              </button>
+            )}
+          </div>
+          <div style={{ border: '1px solid var(--hair)', borderRadius: 6, maxHeight: 260, overflow: 'auto' }}>
+            {isLoading && <div style={{ padding: 16, textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>Cargando…</div>}
+            {!isLoading && filtered.length === 0 && <div style={{ padding: 16, textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>Sin clientes.</div>}
+            {filtered.map((c) => (
+              <label key={c.id}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderBottom: '1px solid var(--hair)', cursor: 'pointer' }}>
+                <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} />
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: 12, fontWeight: 500 }}>{nameOf(c)}</div>
+                  <div className="mono" style={{ fontSize: 10, color: 'var(--muted)' }}>{c.phone || '—'}</div>
+                </div>
+                {(c.tags || []).length > 0 && (
+                  <div style={{ fontSize: 10, color: 'var(--muted)', maxWidth: 130, textAlign: 'right' }}>{c.tags.join(', ')}</div>
+                )}
+              </label>
             ))}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--muted)' }}>Toca una conversación para enviar el documento.</div>
+
+          {/* Cuándo enviar */}
+          <div className="field">
+            <label>Cuándo enviar</label>
+            <div className="row" style={{ gap: 6 }}>
+              <button type="button" className={`btn ${modo === 'now' ? '' : 'ghost'}`} data-handled="1" style={{ flex: 1 }} onClick={() => setModo('now')}>Enviar ahora</button>
+              <button type="button" className={`btn ${modo === 'schedule' ? '' : 'ghost'}`} data-handled="1" style={{ flex: 1 }} onClick={() => setModo('schedule')}>Programar</button>
+            </div>
+          </div>
+          {modo === 'schedule' && (
+            <div className="field">
+              <label>Fecha y hora del envío</label>
+              <input className="input" type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} />
+            </div>
+          )}
+        </div>
+        <div className="m-f">
+          <button type="button" className="btn ghost" data-handled="1" onClick={onClose}>Cancelar</button>
+          <button type="button" className="btn" data-handled="1" disabled={!canSend} onClick={() => sendMut.mutate()}>
+            {sendMut.isPending ? 'Procesando…'
+              : modo === 'schedule'
+                ? `Programar para ${selected.size || ''} cliente(s)`
+                : `Enviar a ${selected.size || ''} cliente(s)`}
+          </button>
         </div>
       </div>
     </div>
@@ -221,6 +327,8 @@ export function Documentos() {
 
   const { data: docs = [], isLoading } = useQuery({ queryKey: ['documents'], queryFn: documentsApi.list });
   const { data: packages = [] } = useQuery({ queryKey: ['packages'], queryFn: catalogApi.list, staleTime: 60000 });
+  // Envíos programados pendientes (se refresca solo cada minuto para reflejar disparos del cron).
+  const { data: scheduled = [] } = useQuery({ queryKey: ['document-scheduled'], queryFn: documentsApi.scheduled, refetchInterval: 60000 });
 
   const pkgName = (id) => packages.find((p) => p.id === id)?.name || '—';
 
@@ -229,6 +337,14 @@ export function Documentos() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['documents'] });
       window.toast?.('Documento eliminado', { label: 'Documentos', kind: 'accent' });
+    },
+  });
+
+  const cancelMut = useMutation({
+    mutationFn: (id) => documentsApi.cancelScheduled(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['document-scheduled'] });
+      window.toast?.('Envío programado cancelado', { label: 'Documentos', kind: 'accent' });
     },
   });
 
@@ -256,6 +372,7 @@ export function Documentos() {
         <div className="stat"><div className="label">Total documentos</div><div className="value">{stats.total}</div></div>
         <div className="stat"><div className="label">Activos</div><div className="value">{stats.activos}</div></div>
         <div className="stat"><div className="label">Envíos acumulados</div><div className="value">{stats.enviados}</div></div>
+        <div className="stat"><div className="label">Programados</div><div className="value">{scheduled.length}</div></div>
       </div>
 
       <div className="spacer-m" />
@@ -315,6 +432,41 @@ export function Documentos() {
           )}
         </div>
       </div>
+
+      {/* Envíos programados pendientes */}
+      {scheduled.length > 0 && (
+        <>
+          <div className="spacer-m" />
+          <div className="card">
+            <div className="card-h">
+              <h2 className="h2">Envíos programados</h2>
+              <span className="pill accent" style={{ marginLeft: 8 }}>{scheduled.length}</span>
+            </div>
+            <div className="card-b flush">
+              <table className="t">
+                <thead><tr><th>Documento</th><th>Cliente</th><th>Mensaje</th><th>Programado para</th><th></th></tr></thead>
+                <tbody>
+                  {scheduled.map((s) => (
+                    <tr key={s.id}>
+                      <td style={{ fontSize: 12, fontWeight: 500 }}>{s.document?.name || '—'}</td>
+                      <td style={{ fontSize: 12 }}>
+                        {s.customer?.fullName || '—'}
+                        <div className="mono" style={{ fontSize: 10, color: 'var(--muted)' }}>{s.customer?.phone || ''}</div>
+                      </td>
+                      <td style={{ fontSize: 11, color: 'var(--muted)', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.caption || '—'}</td>
+                      <td className="cell-id">{fmtDateTime(s.scheduledAt)}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <button className="iconbtn" data-handled="1" title="Cancelar envío"
+                          onClick={() => { if (window.confirm('¿Cancelar este envío programado?')) cancelMut.mutate(s.id); }}><Ico.trash /></button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
 
       {modal && <DocumentModal doc={modal.id ? modal : null} packages={packages} onClose={() => setModal(null)} />}
       {sendDoc && <SendDocModal doc={sendDoc} onClose={() => setSendDoc(null)} />}

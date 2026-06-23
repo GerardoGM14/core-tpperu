@@ -9,7 +9,13 @@ export const documentsApi = {
   // Sube un archivo (base64) y devuelve { fileUrl, fileSize, mimeType }
   upload: ({ data, mime, filename }) =>
     api('/api/documents/upload', { method: 'POST', body: { data, mime, filename } }),
-  // Envía un documento a una conversación por WhatsApp
-  sendToConversation: (conversationId, documentId, caption) =>
-    api(`/api/conversations/${conversationId}/send-document`, { method: 'POST', body: { documentId, caption } }),
+  // Etiquetas de clientes con conteo, para filtrar destinatarios: [{ tag, count }]
+  customerTags: () => api('/api/documents/customer-tags'),
+  // Envía o programa un documento a uno o varios clientes.
+  // body: { customerIds: [], caption?, scheduledAt? (ISO) }
+  send: (documentId, body) =>
+    api(`/api/documents/${documentId}/send`, { method: 'POST', body }),
+  // Envíos programados pendientes.
+  scheduled: () => api('/api/documents/scheduled'),
+  cancelScheduled: (id) => api(`/api/documents/scheduled/${id}`, { method: 'DELETE' }),
 };
