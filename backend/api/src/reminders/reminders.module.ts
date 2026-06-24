@@ -76,6 +76,36 @@ class RemindersService {
 
   // ---- CRUD básico (historial de recordatorios) ----
   findAll() { return this.prisma.reminder.findMany({ orderBy: { scheduledAt: 'desc' }, take: 200 }); }
+
+  /**
+   * Métricas reales para las tarjetas de la vista (sin datos inventados).
+   * Solo cuenta lo que existe en la BD.
+   */
+  async stats() {
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfDay = new Date(startOfDay.getTime() + 24 * 3_600_000);
+
+    const [enviadosHoy, programadosHoy, recordatoriosEnviados, campanasEnviadas, campanasProgramadas] = await Promise.all([
+      // Recordatorios enviados hoy
+      this.prisma.reminder.count({ where: { status: ReminderStatus.SENT, sentAt: { gte: startOfDay, lt: endOfDay } } }),
+      // Recordatorios pendientes programados para hoy
+      this.prisma.reminder.count({ where: { status: ReminderStatus.PENDING, scheduledAt: { gte: startOfDay, lt: endOfDay } } }),
+      // Total histórico de recordatorios enviados
+      this.prisma.reminder.count({ where: { status: ReminderStatus.SENT } }),
+      // Campañas enviadas (completadas)
+      this.prisma.campaign.count({ where: { status: 'COMPLETED' } }),
+      // Campañas programadas pendientes
+      this.prisma.campaign.count({ where: { status: 'SCHEDULED' } }),
+    ]);
+
+    return {
+      recordatoriosHoy: { enviados: enviadosHoy, programados: programadosHoy, total: enviadosHoy + programadosHoy },
+      recordatoriosEnviados,
+      campanasEnviadas,
+      campanasProgramadas,
+    };
+  }
   async findOne(id: string) {
     const r = await this.prisma.reminder.findUnique({ where: { id } });
     if (!r) throw new NotFoundException();
@@ -240,6 +270,7 @@ class RemindersService {
 class RemindersController {
   constructor(private readonly svc: RemindersService) {}
   @Get() findAll() { return this.svc.findAll(); }
+  @Get('stats') stats() { return this.svc.stats(); }
   @Post('test') test(@Body() dto: TestReminderDto) { return this.svc.sendTest(dto); }
   @Get(':id') findOne(@Param('id') id: string) { return this.svc.findOne(id); }
   @Post() create(@Body() dto: CreateReminderDto) { return this.svc.create(dto); }

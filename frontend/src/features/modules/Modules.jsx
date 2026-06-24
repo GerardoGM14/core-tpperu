@@ -298,6 +298,8 @@ export function Recordatorios() {
     queryKey: ['campaigns'],
     queryFn: campaignsApi.list,
   });
+  // Métricas reales de la vista (recordatorios + campañas).
+  const { data: stats } = useQuery({ queryKey: ['reminder-stats'], queryFn: remindersApi.stats, refetchInterval: 60000 });
 
   const send = useMutation({
     mutationFn: (id) => campaignsApi.send(id),
@@ -367,10 +369,26 @@ export function Recordatorios() {
       <div className="spacer-m" />
 
       <div className="grid-stats">
-        <div className="stat"><div className="label">Recordatorios hoy</div><div className="value">38</div><div className="delta"><span className="mono">14 enviados · 24 programados</span></div></div>
-        <div className="stat"><div className="label">Tasa de lectura</div><div className="value">96<span style={{ fontSize: 14, color: 'var(--muted)' }}>%</span></div><div className="delta up"><Ico.up />+0.8 pts</div></div>
-        <div className="stat"><div className="label">NPS post-servicio (30d)</div><div className="value">8.7</div><div className="delta up"><Ico.up />+0.3</div></div>
-        <div className="stat"><div className="label">Campañas programadas</div><div className="value">{campaigns.filter((c) => c.status === 'SCHEDULED').length}</div><div className="delta"><span className="mono">{campaigns.filter((c) => c.status === 'COMPLETED').length} enviadas · {campaigns.length} en total</span></div></div>
+        <div className="stat">
+          <div className="label">Recordatorios hoy</div>
+          <div className="value">{stats?.recordatoriosHoy?.total ?? 0}</div>
+          <div className="delta"><span className="mono">{stats?.recordatoriosHoy?.enviados ?? 0} enviados · {stats?.recordatoriosHoy?.programados ?? 0} programados</span></div>
+        </div>
+        <div className="stat">
+          <div className="label">Recordatorios enviados</div>
+          <div className="value">{stats?.recordatoriosEnviados ?? 0}</div>
+          <div className="delta"><span className="mono">histórico total</span></div>
+        </div>
+        <div className="stat">
+          <div className="label">Campañas enviadas</div>
+          <div className="value">{stats?.campanasEnviadas ?? campaigns.filter((c) => c.status === 'COMPLETED').length}</div>
+          <div className="delta"><span className="mono">completadas</span></div>
+        </div>
+        <div className="stat">
+          <div className="label">Campañas programadas</div>
+          <div className="value">{stats?.campanasProgramadas ?? campaigns.filter((c) => c.status === 'SCHEDULED').length}</div>
+          <div className="delta"><span className="mono">{campaigns.length} en total</span></div>
+        </div>
       </div>
 
       <div className="spacer-m" />
