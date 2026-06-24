@@ -8,9 +8,33 @@ import { PrismaService } from '../shared/prisma.service';
 import { WhatsappBridgeService } from '../whatsapp-bridge/whatsapp-bridge.service';
 import { WhatsappBridgeModule } from '../whatsapp-bridge/whatsapp-bridge.module';
 
-// audience: filtros sobre Customer. Soportado: { tags: string[] } (alguno de) o {} (todos).
+// audience: filtros sobre Customer. Soportado:
+//   tags   → clientes que tengan alguna de esas etiquetas ({} = todos)
+//   phones → números sueltos pegados a mano (aunque no sean clientes)
 interface Audience {
   tags?: string[];
+  phones?: string[];
+}
+
+// Normaliza un teléfono peruano a E.164 (+51XXXXXXXXX). Devuelve null si no es válido.
+function normalizePhonePE(raw: string): string | null {
+  const digits = (raw || '').replace(/\D/g, '');
+  if (!digits) return null;
+  if (digits.startsWith('51') && digits.length === 11) return '+' + digits;
+  if (digits.length === 9 && digits.startsWith('9')) return '+51' + digits;
+  if (digits.startsWith('51') && digits.length >= 10) return '+' + digits;
+  return null; // descarta basura (muy corto, etc.)
+}
+
+// Parsea un texto libre de números (coma, espacio o salto de línea) a E.164 únicos.
+function parsePhones(phones?: string[]): string[] {
+  if (!phones?.length) return [];
+  const out = new Set<string>();
+  for (const raw of phones) {
+    const norm = normalizePhonePE(raw);
+    if (norm) out.add(norm);
+  }
+  return [...out];
 }
 
 class CreateCampaignDto {
@@ -100,12 +124,21 @@ class CampaignsService {
       throw new NotFoundException('La campaña no tiene mensaje configurado');
     }
 
-    // 1) Resolver audiencia
+    // 1) Resolver audiencia: clientes por etiqueta + números sueltos pegados.
     const audience = (campaign.audience as Audience) || {};
     const customers = await this.prisma.customer.findMany({
       where: this.audienceWhere(audience),
       select: { id: true, phone: true, fullName: true },
     });
+
+    // Destinatarios finales por teléfono (dedup): primero los clientes.
+    const byPhone = new Map<string, { phone: string; fullName: string | null }>();
+    for (const c of customers) byPhone.set(c.phone, { phone: c.phone, fullName: c.fullName });
+    // Luego los números sueltos que NO sean ya clientes (sin nombre → {nombre} vacío).
+    for (const phone of parsePhones(audience.phones)) {
+      if (!byPhone.has(phone)) byPhone.set(phone, { phone, fullName: null });
+    }
+    const recipients = [...byPhone.values()];
 
     // Marcar la campaña en ejecución
     await this.prisma.campaign.update({ where: { id }, data: { status: CampaignStatus.RUNNING } });
@@ -114,7 +147,7 @@ class CampaignsService {
     let failed = 0;
 
     // 2) Enviar a cada destinatario (best-effort: un fallo no detiene el resto)
-    for (const c of customers) {
+    for (const c of recipients) {
       const remoteJid = c.phone.replace('+', '') + '@s.whatsapp.net';
       const body = this.personalize(campaign.body, c.fullName);
       try {
@@ -141,7 +174,7 @@ class CampaignsService {
     }
 
     // 3) Guardar stats + estado final
-    const stats = { audience: customers.length, sent, failed, sentAt: new Date().toISOString() };
+    const stats = { audience: recipients.length, sent, failed, sentAt: new Date().toISOString() };
     return this.prisma.campaign.update({
       where: { id },
       data: { status: CampaignStatus.COMPLETED, stats: stats as Prisma.InputJsonValue },

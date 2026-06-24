@@ -32,19 +32,40 @@ function CampaignModal({ campaign, onClose, onCreated }) {
   const [name, setName] = React.useState(campaign?.name || '');
   const [body, setBody] = React.useState(campaign?.body || '');
   const [tags, setTags] = React.useState(campaign?.audience?.tags || []);
+  // Números sueltos pegados a mano (texto libre), aunque no sean clientes.
+  const [phonesText, setPhonesText] = React.useState((campaign?.audience?.phones || []).join('\n'));
   // Cuándo enviar: 'now' (inmediato) | 'schedule' (programar fecha)
   const [modo, setModo] = React.useState(campaign?.scheduledAt ? 'schedule' : 'now');
   const [scheduledAt, setScheduledAt] = React.useState(campaign?.scheduledAt?.slice(0, 16) || '');
 
+  // Parsea el texto libre de números a una lista de E.164 únicos y válidos.
+  const parsePhones = (text) => {
+    const out = new Set();
+    for (const raw of (text || '').split(/[\s,;]+/)) {
+      const d = raw.replace(/\D/g, '');
+      if (!d) continue;
+      let norm = null;
+      if (d.startsWith('51') && d.length === 11) norm = '+' + d;
+      else if (d.length === 9 && d.startsWith('9')) norm = '+51' + d;
+      else if (d.startsWith('51') && d.length >= 10) norm = '+' + d;
+      if (norm) out.add(norm);
+    }
+    return [...out];
+  };
+  const phones = parsePhones(phonesText);
+
   // Etiquetas reales de los clientes (con conteo) para segmentar la audiencia.
   const { data: realTags = [] } = useQuery({ queryKey: ['customer-tags'], queryFn: documentsApi.customerTags });
 
-  // Cuenta de destinatarios según los tags seleccionados.
+  // Cuenta de destinatarios según los tags seleccionados (clientes).
   const { data: audience } = useQuery({
     queryKey: ['audience-count', tags],
     queryFn: () => campaignsApi.audienceCount(tags),
   });
-  const count = audience?.count ?? 0;
+  const clientesCount = audience?.count ?? 0;
+  // Total aproximado: clientes por tag + números sueltos (puede haber solape,
+  // el backend deduplica al enviar; aquí es solo orientativo).
+  const count = clientesCount + phones.length;
 
   const save = useMutation({
     mutationFn: async (data) => {
@@ -83,10 +104,11 @@ function CampaignModal({ campaign, onClose, onCreated }) {
     e.preventDefault();
     if (!name.trim() || !body.trim()) return;
     if (modo === 'schedule' && !scheduledAt) return;
+    if (count === 0) { window.toast?.('Elige al menos un destinatario (etiqueta o números).', { label: 'Campañas', kind: 'accent' }); return; }
     const data = {
       name: name.trim(),
       body: body.trim(),
-      audience: { tags },
+      audience: { tags, phones },
     };
     if (editing) {
       // Al editar, no resucitamos campañas ya enviadas: solo ajustamos
@@ -106,7 +128,7 @@ function CampaignModal({ campaign, onClose, onCreated }) {
   const accionLabel = editing
     ? (save.isPending ? 'Guardando…' : 'Guardar cambios')
     : modo === 'now'
-      ? (save.isPending ? 'Enviando…' : `Enviar ahora a ${count} cliente${count === 1 ? '' : 's'}`)
+      ? (save.isPending ? 'Enviando…' : `Enviar ahora a ${count} destinatario${count === 1 ? '' : 's'}`)
       : (save.isPending ? 'Programando…' : 'Programar envío');
 
   return (
@@ -144,16 +166,34 @@ function CampaignModal({ campaign, onClose, onCreated }) {
                 </button>
               ))}
             </div>
-            <div className="mono" style={{ fontSize: 11, color: tags.length && count === 0 ? 'var(--bad)' : 'var(--muted)', marginTop: 6 }}>
+            <div className="mono" style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>
               {tags.length === 0
-                ? `Se enviará a TODOS los clientes · ${count} destinatario${count === 1 ? '' : 's'}`
-                : `Etiquetas: ${tags.join(', ')} · ${count} destinatario${count === 1 ? '' : 's'}${count === 0 ? ' ⚠ nadie coincide' : ''}`}
+                ? `Clientes: todos · ${clientesCount}`
+                : `Etiquetas: ${tags.join(', ')} · ${clientesCount} cliente${clientesCount === 1 ? '' : 's'}${clientesCount === 0 ? ' ⚠ nadie coincide' : ''}`}
             </div>
             {realTags.length === 0 && (
               <div className="mono" style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
                 Aún no hay etiquetas en tus clientes. Etiquétalos en la vista Clientes para segmentar.
               </div>
             )}
+          </div>
+
+          {/* Números sueltos pegados a mano (aunque no sean clientes) */}
+          <div className="field">
+            <label>Números adicionales (opcional)</label>
+            <textarea className="input mono" value={phonesText} onChange={(e) => setPhonesText(e.target.value)} style={{ minHeight: 70, fontSize: 12 }}
+              placeholder="Pega los números separados por coma, espacio o salto de línea&#10;Ej: 987654321, 945220110, +51 998 102 884" />
+            <div className="mono" style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>
+              {phones.length > 0
+                ? `${phones.length} número${phones.length === 1 ? '' : 's'} válido${phones.length === 1 ? '' : 's'} detectado${phones.length === 1 ? '' : 's'}`
+                : 'Se enviará también a estos números aunque no sean clientes.'}
+            </div>
+          </div>
+
+          {/* Total combinado de destinatarios */}
+          <div className="mono" style={{ fontSize: 12, color: count === 0 ? 'var(--bad)' : 'var(--accent)', fontWeight: 500 }}>
+            Total aproximado: {count} destinatario{count === 1 ? '' : 's'}
+            {clientesCount > 0 && phones.length > 0 ? ' (clientes + números, sin duplicados)' : ''}
           </div>
 
           {(!editing || campaign.status === 'DRAFT' || campaign.status === 'SCHEDULED') && (
