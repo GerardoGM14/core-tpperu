@@ -20,6 +20,7 @@ import { PublicModule } from './public/public.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { ReportsModule } from './reports/reports.module';
 import { SettingsModule } from './settings/settings.module';
+import { TagsModule } from './tags/tags.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { SettingsModule } from './settings/settings.module';
     DashboardModule,
     ReportsModule,
     SettingsModule,
+    TagsModule,
   ],
   controllers: [HealthController],
 })

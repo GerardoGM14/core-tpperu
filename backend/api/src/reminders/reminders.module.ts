@@ -2,7 +2,7 @@ import { PartialType } from '@nestjs/mapped-types';
 import { Module, Body, Controller, Delete, Get, Injectable, Logger, NotFoundException, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { AuthGuard } from '@nestjs/passport';
-import { IsDateString, IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsDateString, IsEnum, IsOptional, IsString } from 'class-validator';
 import { MessageDirection, MessageKind, MessageStatus, ReminderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../shared/prisma.service';
 import { WhatsappBridgeService } from '../whatsapp-bridge/whatsapp-bridge.service';
@@ -58,7 +58,8 @@ class CreateReminderDto {
 class UpdateReminderDto extends PartialType(CreateReminderDto) {}
 
 class TestReminderDto {
-  @IsString() phone: string;                   // número destino (cualquier formato)
+  @IsOptional() @IsString() phone?: string;                          // número individual (cualquier formato)
+  @IsOptional() @IsArray() @IsString({ each: true }) customerIds?: string[]; // clientes de la lista
   @IsOptional() @IsString() template?: string; // código de plantilla
   @IsOptional() @IsString() when?: string;     // '-24h' para elegir fallback
   @IsOptional() @IsString() name?: string;     // nombre para personalizar (default "María")
@@ -153,17 +154,51 @@ class RemindersService {
   }
 
   /**
-   * Envía un recordatorio de prueba a un número, sin tocar reservas reales.
-   * Sirve para verificar la plantilla antes de activar los automáticos.
+   * Envía un recordatorio a un número individual y/o a una lista de clientes
+   * seleccionados. Personaliza {nombre} con el nombre real de cada cliente
+   * (o el nombre de prueba para el número suelto). Best-effort por destinatario.
    */
   async sendTest(dto: TestReminderDto) {
-    const phone = normalizePhonePE(dto.phone);
-    if (!phone) throw new Error('Número inválido');
     const body = await this.resolveBody(dto.template, dto.when || '-24h');
-    const text = this.personalize(body, { nombre: dto.name || 'María', paquete: dto.paquete || 'Tarapoto 7d/6n' });
-    const remoteJid = phone.replace('+', '') + '@s.whatsapp.net';
-    await this.bridge.sendText(remoteJid, text);
-    return { ok: true, phone, preview: text };
+
+    // Destinatarios por teléfono (dedup): clientes seleccionados + número suelto.
+    const byPhone = new Map<string, { phone: string; nombre: string }>();
+
+    if (dto.customerIds?.length) {
+      const customers = await this.prisma.customer.findMany({
+        where: { id: { in: dto.customerIds } },
+        select: { phone: true, fullName: true },
+      });
+      for (const c of customers) {
+        const p = normalizePhonePE(c.phone);
+        if (p) byPhone.set(p, { phone: p, nombre: c.fullName || '' });
+      }
+    }
+
+    const single = dto.phone ? normalizePhonePE(dto.phone) : null;
+    if (single && !byPhone.has(single)) {
+      byPhone.set(single, { phone: single, nombre: dto.name || 'María' });
+    }
+
+    const recipients = [...byPhone.values()];
+    if (!recipients.length) throw new Error('Elige al menos un destinatario válido');
+
+    let sent = 0;
+    let failed = 0;
+    let preview = '';
+    for (const r of recipients) {
+      const text = this.personalize(body, { nombre: r.nombre, paquete: dto.paquete || 'Tarapoto 7d/6n' });
+      if (!preview) preview = text;
+      const remoteJid = r.phone.replace('+', '') + '@s.whatsapp.net';
+      try {
+        await this.bridge.sendText(remoteJid, text);
+        sent++;
+      } catch (err) {
+        failed++;
+        this.logger.warn(`Prueba recordatorio: fallo a ${r.phone}: ${(err as Error).message}`);
+      }
+    }
+    return { ok: true, sent, failed, total: recipients.length, preview };
   }
 
   /**
