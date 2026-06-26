@@ -4,6 +4,7 @@ import Ico from '../../components/icons';
 import { documentsApi } from '../../api/documents';
 import { catalogApi } from '../../api/catalog';
 import { customersApi } from '../../api/customers';
+import { tagsApi } from '../../api/tags';
 import { fileToBase64 } from '../../api/conversations';
 
 const KINDS = [
@@ -174,7 +175,7 @@ function SendDocModal({ doc, onClose }) {
   const [scheduledAt, setScheduledAt] = React.useState(defaultSchedule);
 
   const { data: customers = [], isLoading } = useQuery({ queryKey: ['customers'], queryFn: customersApi.list });
-  const { data: tags = [] } = useQuery({ queryKey: ['customer-tags'], queryFn: documentsApi.customerTags });
+  const { data: tags = [] } = useQuery({ queryKey: ['tags'], queryFn: tagsApi.list });
 
   const sendMut = useMutation({
     mutationFn: () => documentsApi.send(doc.id, {

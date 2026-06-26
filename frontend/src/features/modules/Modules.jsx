@@ -4,6 +4,8 @@ import Ico from '../../components/icons';
 import { campaignsApi } from '../../api/campaigns';
 import { documentsApi } from '../../api/documents';
 import { remindersApi } from '../../api/reminders';
+import { customersApi } from '../../api/customers';
+import { tagsApi } from '../../api/tags';
 import { settingsApi } from '../../api/settings';
 
 const STATUS_PILL = {
@@ -55,7 +57,7 @@ function CampaignModal({ campaign, onClose, onCreated }) {
   const phones = parsePhones(phonesText);
 
   // Etiquetas reales de los clientes (con conteo) para segmentar la audiencia.
-  const { data: realTags = [] } = useQuery({ queryKey: ['customer-tags'], queryFn: documentsApi.customerTags });
+  const { data: realTags = [] } = useQuery({ queryKey: ['tags'], queryFn: tagsApi.list });
 
   // Cuenta de destinatarios según los tags seleccionados (clientes).
   const { data: audience } = useQuery({
@@ -231,47 +233,215 @@ function CampaignModal({ campaign, onClose, onCreated }) {
   );
 }
 
-// ---------- Modal: probar el envío de un recordatorio a un número real ----------
+// ---------- Modal: maestro de etiquetas de clientes ----------
+function TagsMasterModal({ onClose }) {
+  const qc = useQueryClient();
+  const [nueva, setNueva] = React.useState('');
+  const [editing, setEditing] = React.useState(null);   // tag en edición
+  const [editValue, setEditValue] = React.useState('');
+
+  const { data: tags = [], isLoading } = useQuery({ queryKey: ['tags'], queryFn: tagsApi.list });
+
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ['tags'] });
+    qc.invalidateQueries({ queryKey: ['customer-tags'] });
+  };
+
+  const createMut = useMutation({
+    mutationFn: (tag) => tagsApi.create(tag),
+    onSuccess: () => { refresh(); setNueva(''); window.toast?.('Etiqueta creada', { label: 'Etiquetas', kind: 'good' }); },
+    onError: (err) => window.toast?.(err.message || 'No se pudo crear', { label: 'Error', kind: 'accent' }),
+  });
+  const renameMut = useMutation({
+    mutationFn: ({ tag, to }) => tagsApi.rename(tag, to),
+    onSuccess: () => { refresh(); setEditing(null); window.toast?.('Etiqueta renombrada', { label: 'Etiquetas', kind: 'good' }); },
+    onError: (err) => window.toast?.(err.message || 'No se pudo renombrar', { label: 'Error', kind: 'accent' }),
+  });
+  const removeMut = useMutation({
+    mutationFn: ({ tag, withCustomers }) => tagsApi.remove(tag, withCustomers),
+    onSuccess: () => { refresh(); window.toast?.('Etiqueta eliminada', { label: 'Etiquetas', kind: 'accent' }); },
+    onError: (err) => window.toast?.(err.message || 'No se pudo eliminar', { label: 'Error', kind: 'accent' }),
+  });
+
+  const onCreate = (e) => { e.preventDefault(); if (nueva.trim()) createMut.mutate(nueva.trim()); };
+  const startEdit = (t) => { setEditing(t); setEditValue(t); };
+  const saveEdit = (t) => { if (editValue.trim() && editValue.trim() !== t) renameMut.mutate({ tag: t, to: editValue.trim() }); else setEditing(null); };
+  const onRemove = (t, count) => {
+    const withCustomers = count > 0
+      ? window.confirm(`"${t}" está en ${count} cliente(s).\n\nAceptar = quitarla también de esos clientes.\nCancelar = solo quitarla del maestro (los clientes la conservan).`)
+      : false;
+    removeMut.mutate({ tag: t, withCustomers });
+  };
+
+  return (
+    <div className="m-back" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="m-card" style={{ width: 460, maxWidth: '92vw', maxHeight: '86vh', display: 'flex', flexDirection: 'column' }}>
+        <div className="m-h">
+          <h2 className="h2">Gestionar etiquetas</h2>
+          <button type="button" className="iconbtn" data-handled="1" onClick={onClose} style={{ marginLeft: 'auto' }}>✕</button>
+        </div>
+        <div className="m-b" style={{ display: 'flex', flexDirection: 'column', gap: 12, overflow: 'auto' }}>
+          <p className="lead" style={{ fontSize: 12, marginTop: -2 }}>Las etiquetas sirven para segmentar clientes en campañas, documentos y recordatorios.</p>
+
+          <form onSubmit={onCreate} className="row" style={{ gap: 6 }}>
+            <input className="input" value={nueva} onChange={(e) => setNueva(e.target.value)} placeholder="Nueva etiqueta (ej. sabado-laguna-azul)" style={{ flex: 1 }} />
+            <button type="submit" className="btn" data-handled="1" disabled={createMut.isPending || !nueva.trim()}><Ico.plus />Crear</button>
+          </form>
+
+          <div style={{ border: '1px solid var(--hair)', borderRadius: 6, overflow: 'auto' }}>
+            {isLoading && <div style={{ padding: 16, textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>Cargando…</div>}
+            {!isLoading && tags.length === 0 && <div style={{ padding: 16, textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>Aún no hay etiquetas. Crea la primera.</div>}
+            {tags.map(({ tag, count }) => (
+              <div key={tag} className="row between" style={{ padding: '9px 12px', borderBottom: '1px solid var(--hair)', gap: 8 }}>
+                {editing === tag ? (
+                  <input className="input" value={editValue} autoFocus onChange={(e) => setEditValue(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(tag); if (e.key === 'Escape') setEditing(null); }}
+                    style={{ flex: 1 }} />
+                ) : (
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ fontSize: 13, fontWeight: 500 }}>{tag}</span>
+                    <span className="mono" style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 8 }}>{count} cliente{count === 1 ? '' : 's'}</span>
+                  </div>
+                )}
+                <div className="row" style={{ gap: 4 }}>
+                  {editing === tag ? (
+                    <>
+                      <button className="iconbtn" data-handled="1" title="Guardar" onClick={() => saveEdit(tag)}><Ico.check /></button>
+                      <button className="iconbtn" data-handled="1" title="Cancelar" onClick={() => setEditing(null)}>✕</button>
+                    </>
+                  ) : (
+                    <>
+                      <button className="iconbtn" data-handled="1" title="Renombrar" onClick={() => startEdit(tag)}><Ico.pencil /></button>
+                      <button className="iconbtn" data-handled="1" title="Eliminar" onClick={() => onRemove(tag, count)}><Ico.trash /></button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="m-f">
+          <button type="button" className="btn" data-handled="1" onClick={onClose}>Listo</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------- Modal: enviar un recordatorio a un número y/o a clientes ----------
 function TestReminderModal({ rule, onClose }) {
   const [phone, setPhone] = React.useState('');
   const [name, setName] = React.useState('María');
+  const [search, setSearch] = React.useState('');
+  const [activeTag, setActiveTag] = React.useState('');
+  const [selected, setSelected] = React.useState(() => new Set());
+
+  const { data: customers = [] } = useQuery({ queryKey: ['customers'], queryFn: customersApi.list });
+  const { data: tags = [] } = useQuery({ queryKey: ['tags'], queryFn: tagsApi.list });
 
   const test = useMutation({
     mutationFn: () => remindersApi.test({
-      phone: phone.trim(),
+      phone: phone.trim() || undefined,
+      customerIds: [...selected],
       template: rule?.template,
       when: rule?.when,
       name: name.trim() || undefined,
     }),
     onSuccess: (res) => {
-      window.toast?.(`Mensaje de prueba enviado a ${res?.phone || phone}`, { label: 'WhatsApp', kind: 'wa' });
+      const extra = res?.failed ? ` · ${res.failed} falló(aron)` : '';
+      window.toast?.(`Enviado a ${res?.sent ?? 0} destinatario(s)${extra}`, { label: 'WhatsApp', kind: res?.failed ? 'accent' : 'wa' });
       onClose();
     },
     onError: (err) => {
-      const msg = err.status === 502 ? 'WhatsApp no está conectado.' : (err.message || 'No se pudo enviar la prueba.');
+      const msg = err.status === 502 ? 'WhatsApp no está conectado.' : (err.message || 'No se pudo enviar.');
       window.toast?.(msg, { label: 'Error', kind: 'accent' });
     },
   });
 
-  const canSend = phone.replace(/\D/g, '').length >= 9 && !test.isPending;
+  const nameOf = (c) => c?.fullName || (c?.phone || '');
+  const q = search.trim().toLowerCase();
+  const filtered = customers.filter((c) => {
+    if (activeTag && !(c.tags || []).includes(activeTag)) return false;
+    if (q && !nameOf(c).toLowerCase().includes(q) && !(c.phone || '').includes(q)) return false;
+    return true;
+  });
+  const toggle = (id) => setSelected((prev) => {
+    const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next;
+  });
+  const allVisibleSelected = filtered.length > 0 && filtered.every((c) => selected.has(c.id));
+  const toggleAllVisible = () => setSelected((prev) => {
+    const next = new Set(prev);
+    if (allVisibleSelected) filtered.forEach((c) => next.delete(c.id));
+    else filtered.forEach((c) => next.add(c.id));
+    return next;
+  });
+
+  const phoneOk = phone.replace(/\D/g, '').length >= 9;
+  const total = selected.size + (phoneOk ? 1 : 0);
+  const canSend = total > 0 && !test.isPending;
 
   return (
     <div className="m-back" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="m-card" style={{ width: 460, maxWidth: '92vw' }}>
+      <div className="m-card" style={{ width: 480, maxWidth: '92vw', maxHeight: '88vh', display: 'flex', flexDirection: 'column' }}>
         <div className="m-h">
-          <h2 className="h2">Probar envío</h2>
+          <h2 className="h2">Enviar recordatorio</h2>
           <button type="button" className="iconbtn" data-handled="1" onClick={onClose} style={{ marginLeft: 'auto' }}>✕</button>
         </div>
-        <div className="m-b" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <p className="lead" style={{ fontSize: 12, marginTop: -2 }}>Envía este recordatorio (<b>{rule?.label || '—'}</b>) a un número real para verificar antes de activar.</p>
+        <div className="m-b" style={{ display: 'flex', flexDirection: 'column', gap: 12, overflow: 'auto' }}>
+          <p className="lead" style={{ fontSize: 12, marginTop: -2 }}>Envía este recordatorio (<b>{rule?.label || '—'}</b>) a un número suelto y/o a clientes de tu lista.</p>
+
+          {/* Número individual (prueba rápida) */}
           <div className="field">
-            <label>Número WhatsApp</label>
-            <input className="input mono" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+51 987 654 321" autoFocus />
+            <label>Número suelto (opcional)</label>
+            <input className="input mono" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+51 987 654 321" />
           </div>
           <div className="field">
-            <label>Nombre de prueba (reemplaza <span className="mono">{'{nombre}'}</span>)</label>
+            <label>Nombre para el número suelto (reemplaza <span className="mono">{'{nombre}'}</span>)</label>
             <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="María" />
           </div>
+
+          {/* Filtro por etiqueta (del maestro) */}
+          {tags.length > 0 && (
+            <div className="field">
+              <label>Filtrar clientes por etiqueta</label>
+              <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+                <button type="button" className="chip" data-handled="1" onClick={() => setActiveTag('')}
+                  style={{ cursor: 'pointer', borderColor: !activeTag ? 'var(--accent)' : 'var(--hair)', background: !activeTag ? 'var(--paper)' : 'transparent' }}>Todos</button>
+                {tags.map(({ tag, count }) => (
+                  <button key={tag} type="button" className="chip" data-handled="1" onClick={() => setActiveTag(activeTag === tag ? '' : tag)}
+                    style={{ cursor: 'pointer', borderColor: activeTag === tag ? 'var(--accent)' : 'var(--hair)', background: activeTag === tag ? 'var(--paper)' : 'transparent' }}>
+                    {tag} <span style={{ color: 'var(--muted)' }}>· {count}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="topbar-search" style={{ width: '100%' }}>
+            <Ico.search /><input placeholder="Buscar cliente..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+          <div className="row between" style={{ fontSize: 11, color: 'var(--muted)' }}>
+            <span>{selected.size} cliente(s) seleccionado(s)</span>
+            {filtered.length > 0 && (
+              <button type="button" className="btn ghost" data-handled="1" style={{ padding: '2px 8px', fontSize: 11 }} onClick={toggleAllVisible}>
+                {allVisibleSelected ? 'Quitar todos' : 'Seleccionar todos'}
+              </button>
+            )}
+          </div>
+          <div style={{ border: '1px solid var(--hair)', borderRadius: 6, maxHeight: 220, overflow: 'auto' }}>
+            {filtered.length === 0 && <div style={{ padding: 16, textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>Sin clientes.</div>}
+            {filtered.map((c) => (
+              <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderBottom: '1px solid var(--hair)', cursor: 'pointer' }}>
+                <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} />
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: 12, fontWeight: 500 }}>{nameOf(c)}</div>
+                  <div className="mono" style={{ fontSize: 10, color: 'var(--muted)' }}>{c.phone || '—'}</div>
+                </div>
+                {(c.tags || []).length > 0 && <div style={{ fontSize: 10, color: 'var(--muted)', maxWidth: 130, textAlign: 'right' }}>{c.tags.join(', ')}</div>}
+              </label>
+            ))}
+          </div>
+
           <div className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>
             Plantilla: {rule?.template || '—'} · se envía por la sesión de WhatsApp conectada.
           </div>
@@ -279,7 +449,7 @@ function TestReminderModal({ rule, onClose }) {
         <div className="m-f">
           <button type="button" className="btn ghost" data-handled="1" onClick={onClose}>Cancelar</button>
           <button type="button" className="btn" data-handled="1" disabled={!canSend} onClick={() => test.mutate()}>
-            <Ico.send />{test.isPending ? 'Enviando…' : 'Enviar prueba'}
+            <Ico.send />{test.isPending ? 'Enviando…' : `Enviar a ${total || ''} destinatario(s)`}
           </button>
         </div>
       </div>
@@ -292,6 +462,7 @@ export function Recordatorios() {
   const [picked, setPicked] = React.useState('R-24');
   const [modal, setModal] = React.useState(null); // null | {} (nueva) | campaign (editar)
   const [testRule, setTestRule] = React.useState(null); // regla a probar (abre TestReminderModal)
+  const [tagsOpen, setTagsOpen] = React.useState(false); // maestro de etiquetas
   const qc = useQueryClient();
 
   const { data: campaigns = [], isLoading } = useQuery({
@@ -361,6 +532,7 @@ export function Recordatorios() {
           <p className="lead" style={{ marginTop: 4 }}>Comunicación previa al viaje, post-servicio y mensajes masivos a tu base de clientes.</p>
         </div>
         <div className="row" style={{ gap: 8 }}>
+          <button className="btn ghost" onClick={() => setTagsOpen(true)}><Ico.filter />Etiquetas</button>
           <button className="btn ghost" onClick={() => setTab('mass')}><Ico.eye />Ver campañas</button>
           <button className="btn" onClick={() => { setTab('mass'); setModal({}); }}><Ico.plus />Nueva campaña</button>
         </div>
@@ -592,6 +764,7 @@ export function Recordatorios() {
 
       {modal && <CampaignModal campaign={modal.id ? modal : null} onClose={() => setModal(null)} onCreated={() => setTab('mass')} />}
       {testRule && <TestReminderModal rule={testRule} onClose={() => setTestRule(null)} />}
+      {tagsOpen && <TagsMasterModal onClose={() => setTagsOpen(false)} />}
     </div>
   );
 }
