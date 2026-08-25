@@ -1,9 +1,9 @@
 import { PartialType } from '@nestjs/mapped-types';
-import { Module, Body, Controller, Delete, Get, Injectable, Logger, NotFoundException, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Module, Body, Controller, Delete, Get, Injectable, Logger, NotFoundException, OnModuleInit, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { AuthGuard } from '@nestjs/passport';
 import { IsArray, IsDateString, IsEnum, IsOptional, IsString } from 'class-validator';
-import { MessageDirection, MessageKind, MessageStatus, ReminderStatus, Prisma } from '@prisma/client';
+import { MessageDirection, MessageKind, MessageStatus, ReminderStatus, TemplateStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../shared/prisma.service';
 import { WhatsappBridgeService } from '../whatsapp-bridge/whatsapp-bridge.service';
 import { WhatsappBridgeModule } from '../whatsapp-bridge/whatsapp-bridge.module';
@@ -58,6 +58,7 @@ class CreateReminderDto {
 class UpdateReminderDto extends PartialType(CreateReminderDto) {}
 
 class TestReminderDto {
+  @IsOptional() @IsString() ruleId?: string;   // regla desde la que se disparó (R-24, R-48...)
   @IsOptional() @IsString() phone?: string;                          // número individual (cualquier formato)
   @IsOptional() @IsArray() @IsString({ each: true }) customerIds?: string[]; // clientes de la lista
   @IsOptional() @IsString() template?: string; // código de plantilla
@@ -67,7 +68,7 @@ class TestReminderDto {
 }
 
 @Injectable()
-class RemindersService {
+class RemindersService implements OnModuleInit {
   private readonly logger = new Logger(RemindersService.name);
 
   constructor(
@@ -75,8 +76,30 @@ class RemindersService {
     private readonly bridge: WhatsappBridgeService,
   ) {}
 
+  /**
+   * Al arrancar, asegura que exista una Template por cada regla pre-trip
+   * activa. Sin esto las reglas apuntan a códigos inexistentes y la vista
+   * Plantillas aparece vacía, así que no hay nada que editar.
+   */
+  async onModuleInit() {
+    try {
+      const rules = await this.getRules();
+      for (const rule of rules) {
+        if (rule.template) await this.resolveBody(rule.template, rule.when);
+      }
+    } catch (err) {
+      this.logger.warn(`No se pudieron preparar las plantillas de recordatorio: ${(err as Error).message}`);
+    }
+  }
+
   // ---- CRUD básico (historial de recordatorios) ----
-  findAll() { return this.prisma.reminder.findMany({ orderBy: { scheduledAt: 'desc' }, take: 200 }); }
+  findAll() {
+    return this.prisma.reminder.findMany({
+      orderBy: { scheduledAt: 'desc' },
+      take: 200,
+      include: { customer: { select: { fullName: true, phone: true } } },
+    });
+  }
 
   /**
    * Métricas reales para las tarjetas de la vista (sin datos inventados).
@@ -87,7 +110,15 @@ class RemindersService {
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const endOfDay = new Date(startOfDay.getTime() + 24 * 3_600_000);
 
-    const [enviadosHoy, programadosHoy, recordatoriosEnviados, campanasEnviadas, campanasProgramadas] = await Promise.all([
+    const [
+      enviadosHoy,
+      programadosHoy,
+      recordatoriosEnviados,
+      campanasEnviadas,
+      campanasProgramadas,
+      campanasBorrador,
+      campanasTotal,
+    ] = await Promise.all([
       // Recordatorios enviados hoy
       this.prisma.reminder.count({ where: { status: ReminderStatus.SENT, sentAt: { gte: startOfDay, lt: endOfDay } } }),
       // Recordatorios pendientes programados para hoy
@@ -98,6 +129,10 @@ class RemindersService {
       this.prisma.campaign.count({ where: { status: 'COMPLETED' } }),
       // Campañas programadas pendientes
       this.prisma.campaign.count({ where: { status: 'SCHEDULED' } }),
+      // Borradores: creados pero aún sin enviar ni programar.
+      this.prisma.campaign.count({ where: { status: 'DRAFT' } }),
+      // Total de campañas, en cualquier estado.
+      this.prisma.campaign.count(),
     ]);
 
     return {
@@ -105,6 +140,8 @@ class RemindersService {
       recordatoriosEnviados,
       campanasEnviadas,
       campanasProgramadas,
+      campanasBorrador,
+      campanasTotal,
     };
   }
   async findOne(id: string) {
@@ -137,13 +174,46 @@ class RemindersService {
     return value.rules?.length ? value.rules : DEFAULT_RULES;
   }
 
-  // Resuelve el texto de una plantilla por código; cae al fallback por offset.
+  // Nombre legible por offset, para la plantilla que se auto-crea.
+  private static readonly TEMPLATE_NAMES: Record<string, string> = {
+    '-48h': 'Recordatorio · 48 horas antes',
+    '-24h': 'Recordatorio · 24 horas antes',
+    '-12h': 'Recordatorio · 12 horas antes',
+  };
+
+  /**
+   * Resuelve el texto de una plantilla por código.
+   *
+   * Si la plantilla referenciada por la regla todavía no existe en la BD, la
+   * creamos con el texto de respaldo en vez de usarlo en silencio. Así el
+   * panel siempre tiene una fila editable en Plantillas y lo que se envía es
+   * exactamente lo que el usuario ve y puede cambiar.
+   */
   private async resolveBody(templateCode: string | undefined, when: string): Promise<string> {
-    if (templateCode) {
-      const tpl = await this.prisma.template.findUnique({ where: { code: templateCode } });
-      if (tpl?.body) return tpl.body;
+    const fallback = FALLBACK_BODY[when] || FALLBACK_BODY['-24h'];
+    if (!templateCode) return fallback;
+
+    const tpl = await this.prisma.template.findUnique({ where: { code: templateCode } });
+    if (tpl?.body) return tpl.body;
+
+    try {
+      const created = await this.prisma.template.create({
+        data: {
+          code: templateCode,
+          name: RemindersService.TEMPLATE_NAMES[when] || `Recordatorio ${when}`,
+          body: fallback,
+          variables: ['nombre', 'paquete'],
+          status: TemplateStatus.APPROVED,
+          approvedAt: new Date(),
+        },
+      });
+      this.logger.log(`Plantilla ${templateCode} creada automáticamente desde el texto por defecto`);
+      return created.body;
+    } catch {
+      // Carrera con otro proceso creando la misma plantilla: releemos.
+      const again = await this.prisma.template.findUnique({ where: { code: templateCode } });
+      return again?.body || fallback;
     }
-    return FALLBACK_BODY[when] || FALLBACK_BODY['-24h'];
   }
 
   // Sustituye {nombre} y {paquete}.
@@ -162,22 +232,32 @@ class RemindersService {
     const body = await this.resolveBody(dto.template, dto.when || '-24h');
 
     // Destinatarios por teléfono (dedup): clientes seleccionados + número suelto.
-    const byPhone = new Map<string, { phone: string; nombre: string }>();
+    const byPhone = new Map<string, { phone: string; nombre: string; customerId: string | null }>();
 
     if (dto.customerIds?.length) {
       const customers = await this.prisma.customer.findMany({
         where: { id: { in: dto.customerIds } },
-        select: { phone: true, fullName: true },
+        select: { id: true, phone: true, fullName: true },
       });
       for (const c of customers) {
         const p = normalizePhonePE(c.phone);
-        if (p) byPhone.set(p, { phone: p, nombre: c.fullName || '' });
+        if (p) byPhone.set(p, { phone: p, nombre: c.fullName || '', customerId: c.id });
       }
     }
 
     const single = dto.phone ? normalizePhonePE(dto.phone) : null;
     if (single && !byPhone.has(single)) {
-      byPhone.set(single, { phone: single, nombre: dto.name || 'María' });
+      // Si el número suelto ya es un cliente, lo enlazamos para que el envío
+      // quede registrado contra su ficha y no como un envío huérfano.
+      const existing = await this.prisma.customer.findUnique({
+        where: { phone: single },
+        select: { id: true, fullName: true },
+      });
+      byPhone.set(single, {
+        phone: single,
+        nombre: existing?.fullName || dto.name || 'María',
+        customerId: existing?.id ?? null,
+      });
     }
 
     const recipients = [...byPhone.values()];
@@ -190,15 +270,95 @@ class RemindersService {
       const text = this.personalize(body, { nombre: r.nombre, paquete: dto.paquete || 'Tarapoto 7d/6n' });
       if (!preview) preview = text;
       const remoteJid = r.phone.replace('+', '') + '@s.whatsapp.net';
+
+      // Registramos el recordatorio ANTES de enviar, para que quede rastro
+      // aunque el envío falle (igual que hace el cron en fireReminder).
+      const reminder = await this.prisma.reminder.create({
+        data: {
+          customerId: r.customerId,
+          body: text,
+          scheduledAt: new Date(),
+          status: ReminderStatus.PENDING,
+          metadata: {
+            source: 'manual',
+            ruleId: dto.ruleId || null,
+            when: dto.when || '-24h',
+            template: dto.template || null,
+            phone: r.phone,
+          } as Prisma.InputJsonValue,
+        },
+      });
+
       try {
         await this.bridge.sendText(remoteJid, text);
+        await this.prisma.reminder.update({
+          where: { id: reminder.id },
+          data: { status: ReminderStatus.SENT, sentAt: new Date() },
+        });
+        await this.logToConversation(remoteJid, text, r.customerId, r.nombre);
         sent++;
       } catch (err) {
         failed++;
+        await this.prisma.reminder.update({
+          where: { id: reminder.id },
+          data: {
+            status: ReminderStatus.FAILED,
+            metadata: {
+              source: 'manual',
+              ruleId: dto.ruleId || null,
+              when: dto.when || '-24h',
+              template: dto.template || null,
+              phone: r.phone,
+              error: (err as Error).message.slice(0, 200),
+            } as Prisma.InputJsonValue,
+          },
+        });
         this.logger.warn(`Prueba recordatorio: fallo a ${r.phone}: ${(err as Error).message}`);
       }
     }
     return { ok: true, sent, failed, total: recipients.length, preview };
+  }
+
+  /**
+   * Deja el recordatorio enviado visible en el hilo de WhatsApp del cliente.
+   * Crea la conversación si aún no existe (p.ej. número al que nunca escribimos),
+   * para que el envío no quede invisible en el panel. Best-effort.
+   */
+  private async logToConversation(
+    remoteJid: string,
+    text: string,
+    customerId: string | null,
+    displayName?: string,
+  ) {
+    try {
+      const now = new Date();
+      const convo = await this.prisma.conversation.upsert({
+        where: { remoteJid },
+        update: {
+          lastMessageAt: now,
+          ...(customerId ? { customerId } : {}),
+        },
+        create: {
+          remoteJid,
+          customerId,
+          displayName: displayName || null,
+          chatType: 'individual',
+          lastMessageAt: now,
+        },
+      });
+      await this.prisma.message.create({
+        data: {
+          conversationId: convo.id,
+          direction: MessageDirection.OUTBOUND,
+          kind: MessageKind.TEXT,
+          status: MessageStatus.SENT,
+          body: text,
+          sentAt: now,
+        },
+      });
+    } catch (err) {
+      this.logger.warn(`No se pudo registrar el recordatorio en la conversación: ${(err as Error).message}`);
+    }
   }
 
   /**
@@ -268,20 +428,8 @@ class RemindersService {
 
     try {
       await this.bridge.sendText(remoteJid, text);
-      // Registrar el mensaje en la conversación del cliente (si existe).
-      const convo = await this.prisma.conversation.findUnique({ where: { remoteJid } });
-      if (convo) {
-        await this.prisma.message.create({
-          data: {
-            conversationId: convo.id,
-            direction: MessageDirection.OUTBOUND,
-            kind: MessageKind.TEXT,
-            status: MessageStatus.SENT,
-            body: text,
-            sentAt: new Date(),
-          },
-        });
-      }
+      // Deja el recordatorio visible en el hilo del cliente (crea la convo si falta).
+      await this.logToConversation(remoteJid, text, order.customerId, order.customer.fullName);
       await this.prisma.reminder.update({
         where: { id: reminder.id },
         data: { status: ReminderStatus.SENT, sentAt: new Date() },

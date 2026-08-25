@@ -182,12 +182,13 @@ export class ConversationsService {
     return msg;
   }
 
-  /** Persiste un mensaje de media saliente. El frontend ya tiene el archivo,
-   *  pero para el historial guardamos kind + caption (la media saliente no la
-   *  re-servimos; se ve en el momento del envío). */
+  /** Persiste un mensaje de media saliente.
+   *  `media.url` es la ruta servible del archivo (p.ej. /api/documents/file/xxx);
+   *  guardarla permite abrir o descargar el adjunto desde el historial del chat.
+   */
   async recordOutboundMedia(
     conversationId: string,
-    media: { mime: string; caption?: string; filename?: string },
+    media: { mime: string; caption?: string; filename?: string; url?: string | null },
     result: { id?: string; timestamp?: number },
   ) {
     const sentAt = result?.timestamp ? new Date(result.timestamp * 1000) : new Date();
@@ -203,9 +204,12 @@ export class ConversationsService {
           direction: MessageDirection.OUTBOUND,
           kind,
           status: MessageStatus.SENT,
-          body: media.caption ?? null,
+          // Sin caption mostramos el nombre del archivo, para que la burbuja
+          // no quede como un "Documento" anónimo.
+          body: media.caption || media.filename || null,
           mediaCaption: media.caption ?? null,
           mediaMimeType: media.mime,
+          mediaUrl: media.url ?? null,
           sentAt,
         },
       }),

@@ -26,6 +26,10 @@ export function Ventas() {
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ['orders'],
     queryFn: ordersApi.list,
+    // Las reservas entran desde la landing, fuera del panel: refrescamos
+    // periódicamente y al volver a la pestaña para no quedar desactualizados.
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
   });
 
   React.useEffect(() => {
@@ -61,6 +65,10 @@ export function Ventas() {
   const revenue = paid.reduce((s, o) => s + o.totalCents, 0);
   const waRevenue = paid.filter((o) => o.channel === 'WHATSAPP').reduce((s, o) => s + o.totalCents, 0);
   const avgTicket = paid.length ? revenue / paid.length : 0;
+  // "Confirmadas" incluye las pagadas y las confirmadas sin pagar aún.
+  const confirmed = orders.filter((o) => o.status === 'PAID' || o.status === 'CONFIRMED');
+  // Reservas nuevas por revisar (llegan de la web como PENDING).
+  const pending = orders.filter((o) => o.status === 'PENDING');
 
   return (
     <div className="view">
@@ -78,7 +86,12 @@ export function Ventas() {
 
       <div className="grid-stats">
         <div className="stat"><div className="label">Ingresos (pagados)</div><div className="value">{soles(revenue)}</div></div>
-        <div className="stat"><div className="label">Reservas confirmadas</div><div className="value">{paid.length}</div></div>
+        <div className="stat"><div className="label">Reservas confirmadas</div><div className="value">{confirmed.length}</div></div>
+        <div className="stat">
+          <div className="label">Por revisar</div>
+          <div className="value" style={pending.length ? { color: 'var(--accent)' } : undefined}>{pending.length}</div>
+          <div className="sub" style={{ fontSize: 11, color: 'var(--muted)' }}>reservas pendientes</div>
+        </div>
         <div className="stat"><div className="label">Ticket promedio</div><div className="value">{soles(avgTicket)}</div></div>
         <div className="stat"><div className="label">Vía WhatsApp</div><div className="value">{soles(waRevenue)}</div></div>
       </div>

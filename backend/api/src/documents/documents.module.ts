@@ -186,9 +186,14 @@ class DocumentsService {
           direction: MessageDirection.OUTBOUND,
           kind: MessageKind.DOCUMENT,
           status: MessageStatus.SENT,
-          body: delivery.caption ?? null,
+          // El body lleva el nombre del documento para que la burbuja del
+          // chat muestre "Itinerario.pdf" y no un genérico "Documento".
+          body: delivery.caption || doc.name,
           mediaCaption: delivery.caption ?? null,
           mediaMimeType: mime,
+          // El archivo ya vive en disco con URL servible: la guardamos para
+          // que el documento se pueda abrir/descargar desde la conversación.
+          mediaUrl: doc.fileUrl,
           sentAt,
         },
       });

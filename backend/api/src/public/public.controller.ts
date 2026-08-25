@@ -1,5 +1,6 @@
 import { BadRequestException, Body, Controller, Get, NotFoundException, Param, Post } from '@nestjs/common';
-import { IsOptional, IsString, MinLength } from 'class-validator';
+import { IsArray, IsNumber, IsOptional, IsString, MinLength, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 import { PublicService } from './public.service';
 
 class CreateLeadDto {
@@ -39,6 +40,22 @@ class SubmitVoucherDto {
   total?: string;
 }
 
+// Un item del carrito de la landing.
+class ReservationItemDto {
+  @IsOptional() @IsString()
+  slug?: string;
+
+  @IsOptional() @IsString()
+  nombre?: string;
+
+  @IsOptional() @IsNumber()
+  cantidad?: number;
+
+  // El precio llega formateado ("S/ 589.00") o como número.
+  @IsOptional()
+  precio?: string | number;
+}
+
 class ConfirmReservationDto {
   @IsString() @MinLength(2)
   name: string;
@@ -64,6 +81,10 @@ class ConfirmReservationDto {
   // Comprobante opcional (si lo subió antes). Data URL base64.
   @IsOptional() @IsString()
   voucherBase64?: string;
+
+  // Items del carrito: con esto la reserva se registra en el módulo de ventas.
+  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => ReservationItemDto)
+  items?: ReservationItemDto[];
 }
 
 // Endpoints PÚBLICOS (sin auth) que consume la landing Astro.

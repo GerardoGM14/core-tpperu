@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { MessageDirection, MessageKind, MessageStatus } from '@prisma/client';
+import { MessageDirection, MessageKind, MessageStatus, OrderChannel, OrderStatus, Prisma } from '@prisma/client';
 import { FlowTriggerType } from '@prisma/client';
 import { PrismaService } from '../shared/prisma.service';
 import { WhatsappBridgeService } from '../whatsapp-bridge/whatsapp-bridge.service';
@@ -23,6 +23,15 @@ function normalizePhonePE(raw: string): string | null {
   if (digits.length === 9 && digits.startsWith('9')) return '+51' + digits;      // celular peruano
   if (digits.startsWith('51')) return '+' + digits;                              // ya con código país
   return '+' + digits;                                                            // fallback
+}
+
+// Convierte "S/ 1,178.00" | "1178.00" | 1178 a céntimos. 0 si no se puede.
+function parsePriceToCents(raw: string | number | undefined | null): number {
+  if (raw == null) return 0;
+  if (typeof raw === 'number') return Math.round(raw * 100);
+  const cleaned = raw.replace(/[^\d.,-]/g, '').replace(/,/g, '');
+  const value = parseFloat(cleaned);
+  return Number.isFinite(value) ? Math.round(value * 100) : 0;
 }
 
 @Injectable()
@@ -272,6 +281,92 @@ export class PublicService {
     };
   }
 
+
+  /**
+   * Genera el siguiente código de reserva del año (TPP-2026-0001).
+   * Se basa en el último código emitido, así que es correlativo y legible.
+   */
+  private async nextOrderCode(): Promise<string> {
+    const year = new Date().getFullYear();
+    const prefix = `TPP-${year}-`;
+    const last = await this.prisma.order.findFirst({
+      where: { code: { startsWith: prefix } },
+      orderBy: { code: 'desc' },
+      select: { code: true },
+    });
+    const n = last ? parseInt(last.code.slice(prefix.length), 10) || 0 : 0;
+    return prefix + String(n + 1).padStart(4, '0');
+  }
+
+  /**
+   * Registra en el módulo de ventas los paquetes de una reserva web.
+   * Crea una Order por paquete del carrito (el modelo relaciona una orden con
+   * un paquete). Best-effort: si un item no se puede resolver, se omite y el
+   * resto sí queda registrado.
+   *
+   * `paid` indica si venía comprobante de pago: en ese caso la reserva entra
+   * como PENDING pero con el monto en paidCents, para que el equipo verifique
+   * el voucher antes de marcarla como pagada.
+   */
+  private async createOrdersFromCart(
+    customerId: string,
+    items: Array<{ slug?: string; nombre?: string; cantidad?: number; precio?: string | number }>,
+    opts: { hasVoucher: boolean; notes?: string },
+  ): Promise<{ codes: string[]; unmatched: string[] }> {
+    const created: string[] = [];
+    const unmatched: string[] = [];
+
+    for (const item of items) {
+      try {
+        // Resolver el paquete: primero por slug, luego por nombre exacto.
+        let pkg = item.slug
+          ? await this.prisma.package.findUnique({ where: { slug: item.slug } })
+          : null;
+        if (!pkg && item.nombre) {
+          pkg = await this.prisma.package.findFirst({ where: { name: item.nombre } });
+        }
+        if (!pkg) {
+          // El catálogo de la landing y el de la BD están desincronizados.
+          // No perdemos la venta: lo reportamos para que quede en la nota del
+          // chat y en el correo, y el equipo lo registre a mano.
+          this.logger.warn(`Reserva web: no se encontró el paquete "${item.nombre || item.slug}"; no se registró en ventas`);
+          unmatched.push(item.nombre || item.slug || 'paquete desconocido');
+          continue;
+        }
+
+        const pax = Math.max(1, Number(item.cantidad) || 1);
+        // Preferimos el precio del catálogo (fuente de verdad) sobre el que
+        // llega del navegador, que es manipulable.
+        const unitCents = pkg.priceCents || parsePriceToCents(item.precio);
+        const totalCents = unitCents * pax;
+
+        const order = await this.prisma.order.create({
+          data: {
+            code: await this.nextOrderCode(),
+            customerId,
+            packageId: pkg.id,
+            status: OrderStatus.PENDING,
+            channel: OrderChannel.WEB,
+            pax,
+            totalCents,
+            paidCents: opts.hasVoucher ? totalCents : 0,
+            notes: opts.notes || null,
+            metadata: {
+              source: 'landing-checkout',
+              hasVoucher: opts.hasVoucher,
+            } as Prisma.InputJsonValue,
+          },
+        });
+        created.push(order.code);
+      } catch (err) {
+        this.logger.warn(`Reserva web: no se pudo registrar el item "${item.nombre || item.slug}": ${(err as Error).message}`);
+        unmatched.push(item.nombre || item.slug || 'paquete desconocido');
+      }
+    }
+
+    return { codes: created, unmatched };
+  }
+
   /**
    * Confirma una reserva desde el checkout:
    *  - registra/actualiza el cliente y deja nota en su conversación
@@ -288,6 +383,7 @@ export class PublicService {
     orderSummary?: string;
     total?: string;
     voucherBase64?: string;
+    items?: Array<{ slug?: string; nombre?: string; cantidad?: number; precio?: string | number }>;
   }) {
     const phone = normalizePhonePE(input.phone);
     if (!phone) throw new Error('Teléfono inválido');
@@ -319,9 +415,19 @@ export class PublicService {
       },
     });
 
-    // 2) Nota en la conversación
+    // 2) Registrar la reserva en el módulo de ventas (una Order por paquete).
+    //    Sin esto la reserva solo existiría como nota de chat y correo.
+    const { codes: orderCodes, unmatched } = await this.createOrdersFromCart(
+      customer.id,
+      input.items || [],
+      { hasVoucher: !!input.voucherBase64, notes: input.comments },
+    );
+
+    // 3) Nota en la conversación
     const notaBody =
       `🧾 *Reserva confirmada desde la web*\n` +
+      (orderCodes.length ? `Reserva: ${orderCodes.join(', ')}\n` : '') +
+      (unmatched.length ? `⚠ Registrar a mano: ${unmatched.join(', ')}\n` : '') +
       `Cliente: ${input.name}\n` +
       `Doc: ${input.document || '—'} · ${input.email} · ${phone}\n` +
       (input.total ? `Total: ${input.total}\n` : '') +
@@ -363,6 +469,8 @@ export class PublicService {
         subject: `🧾 Nueva reserva web — ${input.name}`,
         html: `
           <h2 style="font-family:Arial,sans-serif;color:#191505">Nueva reserva desde la web</h2>
+          ${orderCodes.length ? `<p style="font-family:Arial,sans-serif;font-size:14px"><b>Registrada en el panel como:</b> ${orderCodes.join(', ')}</p>` : ''}
+          ${unmatched.length ? `<p style="font-family:Arial,sans-serif;font-size:14px;color:#cc140d"><b>⚠ Registrar a mano</b> (no están en el catálogo del panel): ${unmatched.join(', ')}</p>` : ''}
           <table style="font-family:Arial,sans-serif;font-size:14px;color:#333">
             <tr><td><b>Cliente:</b></td><td>${input.name}</td></tr>
             <tr><td><b>Documento:</b></td><td>${input.document || '—'}</td></tr>
@@ -404,6 +512,7 @@ export class PublicService {
       ok: true,
       customerId: customer.id,
       conversationId: convo.id,
+      orderCodes,
       emailEnabled: this.email.enabled,
       emailToTpp,
       emailToCustomer,

@@ -13,6 +13,85 @@ function fillTemplate(body, conversation) {
   return body.replace(/\{(\w+)\}/g, (_, k) => map[k] ?? `{${k}}`);
 }
 
+// Nombre legible del adjunto: prioriza el caption/nombre guardado y, si no,
+// lo deduce de la URL del archivo.
+function fileNameOf(m) {
+  const raw = m.mediaCaption || m.body;
+  if (raw && raw.length < 80 && !raw.includes('\n')) return raw;
+  const fromUrl = (m.mediaUrl || '').split('/').pop() || '';
+  return fromUrl || 'Documento';
+}
+
+// Etiqueta corta del tipo de archivo, para la tarjeta del adjunto.
+function fileKindLabel(mime) {
+  if (!mime) return 'Archivo';
+  if (mime === 'application/pdf') return 'PDF';
+  if (mime.startsWith('image/')) return 'Imagen';
+  if (mime.startsWith('video/')) return 'Video';
+  if (mime.startsWith('audio/')) return 'Audio';
+  if (mime.includes('word')) return 'Word';
+  if (mime.includes('sheet') || mime.includes('excel')) return 'Excel';
+  const sub = mime.split('/')[1] || '';
+  return sub.slice(0, 12).toUpperCase() || 'Archivo';
+}
+
+// Tarjeta de documento: nombre, tipo, abrir y descargar.
+// Los PDF además muestran una previsualización embebida.
+function DocumentBubble({ m }) {
+  const [preview, setPreview] = React.useState(false);
+  const url = m.mediaUrl;
+  const mime = m.mediaMimeType || '';
+  const isPdf = mime === 'application/pdf' || /\.pdf$/i.test(url || '');
+  const name = fileNameOf(m);
+
+  return (
+    <div style={{ marginBottom: m.body && m.body !== name ? 6 : 0 }}>
+      <div className="row" style={{
+        gap: 10, alignItems: 'center', padding: '8px 10px',
+        background: 'rgba(0,0,0,0.05)', borderRadius: 6, minWidth: 210, maxWidth: 260,
+      }}>
+        <Ico.file style={{ flexShrink: 0, opacity: 0.75 }} />
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={name}>
+            {name}
+          </div>
+          <div style={{ fontSize: 10, opacity: 0.6 }}>{fileKindLabel(mime)}</div>
+        </div>
+        <a href={url} download={name} title="Descargar"
+          style={{ color: 'inherit', opacity: 0.7, display: 'flex', flexShrink: 0 }}>
+          <Ico.download />
+        </a>
+      </div>
+
+      <div className="row" style={{ gap: 10, marginTop: 5, fontSize: 11 }}>
+        {isPdf && (
+          <button type="button" data-handled="1" onClick={() => setPreview((v) => !v)}
+            style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer', color: 'inherit', opacity: 0.7, textDecoration: 'underline' }}>
+            {preview ? 'Ocultar' : 'Ver aquí'}
+          </button>
+        )}
+        <a href={url} target="_blank" rel="noreferrer"
+          style={{ color: 'inherit', opacity: 0.7 }}>
+          Abrir en pestaña
+        </a>
+      </div>
+
+      {preview && isPdf && (
+        <iframe src={url} title={name}
+          style={{ width: 260, height: 340, marginTop: 6, border: '1px solid rgba(0,0,0,0.12)', borderRadius: 6, background: '#fff' }} />
+      )}
+    </div>
+  );
+}
+
+// Texto de la burbuja. En los adjuntos, el nombre del archivo ya se muestra
+// dentro de la tarjeta, así que no lo repetimos debajo.
+function bodyText(m) {
+  if (!m.body) return null;
+  if (m.kind === 'DOCUMENT' && m.mediaUrl && m.body === fileNameOf(m)) return null;
+  return m.body;
+}
+
 // Render del contenido multimedia de un mensaje según su tipo.
 function MessageMedia({ m }) {
   const url = m.mediaUrl;
@@ -20,7 +99,11 @@ function MessageMedia({ m }) {
   if (!url && m.kind === 'TEXT') return null;
 
   if (m.kind === 'IMAGE' && url) {
-    return <img src={url} alt={m.body || 'imagen'} style={{ maxWidth: 240, borderRadius: 6, display: 'block', marginBottom: m.body ? 6 : 0 }} />;
+    return (
+      <a href={url} target="_blank" rel="noreferrer" style={{ display: 'block' }}>
+        <img src={url} alt={m.body || 'imagen'} style={{ maxWidth: 240, borderRadius: 6, display: 'block', marginBottom: m.body ? 6 : 0 }} />
+      </a>
+    );
   }
   if (m.kind === 'VIDEO' && url) {
     return <video src={url} controls style={{ maxWidth: 260, borderRadius: 6, display: 'block', marginBottom: m.body ? 6 : 0 }} />;
@@ -29,16 +112,18 @@ function MessageMedia({ m }) {
     return <audio src={url} controls style={{ display: 'block', marginBottom: 4, maxWidth: 240 }} />;
   }
   if (m.kind === 'DOCUMENT' && url) {
-    return (
-      <a href={url} target="_blank" rel="noreferrer" className="row" style={{ gap: 8, textDecoration: 'none', color: 'inherit', marginBottom: m.body ? 6 : 0 }}>
-        <Ico.copy /><span style={{ fontSize: 12, fontWeight: 500 }}>{m.body || 'Documento'}</span>
-      </a>
-    );
+    return <DocumentBubble m={m} />;
   }
-  // media saliente sin url servible (la enviamos pero no la re-servimos)
+  // Media sin archivo servible: mensajes antiguos, enviados antes de que
+  // guardáramos la copia del adjunto.
   if (!url && m.kind !== 'TEXT') {
     const label = { IMAGE: '🖼️ Imagen', VIDEO: '🎬 Video', AUDIO: '🎵 Audio', DOCUMENT: '📄 Documento' }[m.kind] || m.kind;
-    return <div style={{ fontSize: 12, opacity: 0.85, marginBottom: m.body ? 6 : 0 }}>{label}</div>;
+    return (
+      <div style={{ fontSize: 12, opacity: 0.85, marginBottom: m.body ? 6 : 0 }}>
+        {label}
+        <div style={{ fontSize: 10, opacity: 0.6 }}>archivo no disponible</div>
+      </div>
+    );
   }
   return null;
 }
@@ -339,7 +424,7 @@ export function Conversations() {
                         )}
                         <div className={'bubble ' + (isMe ? 'me' : 'them')} style={{ whiteSpace: 'pre-line', position: 'relative', marginBottom: m.reaction ? 10 : 0 }}>
                           <MessageMedia m={m} />
-                          {m.body}
+                          {bodyText(m)}
                           <span className="ts">
                             {timeLabel(m.sentAt || m.createdAt)}
                             {isMe && <span style={{ marginLeft: 4 }}>{m.status === 'READ' ? '✓✓' : '✓'}</span>}

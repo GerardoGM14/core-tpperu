@@ -7,6 +7,7 @@ import { remindersApi } from '../../api/reminders';
 import { customersApi } from '../../api/customers';
 import { tagsApi } from '../../api/tags';
 import { settingsApi } from '../../api/settings';
+import { templatesApi } from '../../api/templates';
 
 const STATUS_PILL = {
   DRAFT:     { cls: '',     label: 'borrador',   dot: 'var(--muted)' },
@@ -17,14 +18,30 @@ const STATUS_PILL = {
   CANCELLED: { cls: 'bad',  label: 'cancelada',  dot: null },
 };
 
-function PreTripPreview({ when }) {
-  const map = {
-    '-48h': '🌿 Hola María, faltan *48 horas* para tu tour *Tarapoto 7d/6n*. Tu reserva está confirmada ✅\n\nTe escribimos pronto con el horario exacto y punto de encuentro.',
-    '-24h': '⏰ Recordatorio · *24 h* para el inicio de tu tour.\n\n📍 Punto de encuentro: Aeropuerto FAP Guillermo del Castillo · 06:30 AM\n👤 Guía asignado: Luis Apuela (+51 945 220 110)\n\nMapa: https://maps.app.goo.gl/tpp-aeropuerto',
-    '-12h': '🎒 *Mañana viajas con TPP*. Recomendaciones:\n• Documento de identidad\n• Bloqueador, repelente y zapatos cerrados\n• Ropa ligera + abrigo para la noche\n\nNos vemos a las 06:30 AM. ¡Disfruta tu viaje!',
-    '+48h': '🙏 Hola María, esperamos que hayas disfrutado *Tarapoto 7d/6n*.\n\n¿Cómo calificarías tu experiencia del 1 al 10?\n\nResponde y te enviamos un cupón *VUELVE15* para tu próximo viaje 🌿',
-  };
-  return <div className="bubble bot" style={{ whiteSpace: 'pre-line', maxWidth: '100%' }}>{map[when]}<span className="ts">14:32 ✓✓</span></div>;
+// Renderiza el texto de la plantilla tal como llegará por WhatsApp:
+// sustituye las variables con un ejemplo y aplica el *negrita* de WhatsApp.
+function renderPreview(body, vars) {
+  const filled = (body || '')
+    .replace(/\{nombre\}/gi, vars.nombre)
+    .replace(/\{paquete\}/gi, vars.paquete);
+  const parts = filled.split(/(\*[^*\n]+\*)/g);
+  return parts.map((part, i) =>
+    part.startsWith('*') && part.endsWith('*') && part.length > 2
+      ? <b key={i}>{part.slice(1, -1)}</b>
+      : <span key={i}>{part}</span>
+  );
+}
+
+function PreTripPreview({ body, nombre = 'María', paquete = 'Tarapoto 7d/6n' }) {
+  if (!body) {
+    return <div className="bubble bot" style={{ maxWidth: '100%', color: 'var(--muted)' }}>Sin plantilla asociada.</div>;
+  }
+  return (
+    <div className="bubble bot" style={{ whiteSpace: 'pre-line', maxWidth: '100%' }}>
+      {renderPreview(body, { nombre, paquete })}
+      <span className="ts">14:32 ✓✓</span>
+    </div>
+  );
 }
 
 // ---------- Modal: crear / editar campaña ----------
@@ -59,6 +76,19 @@ function CampaignModal({ campaign, onClose, onCreated }) {
   // Etiquetas reales de los clientes (con conteo) para segmentar la audiencia.
   const { data: realTags = [] } = useQuery({ queryKey: ['tags'], queryFn: tagsApi.list });
 
+  // Todas las plantillas disponibles, para partir de una en vez de escribir
+  // el mensaje desde cero.
+  const { data: templates = [] } = useQuery({ queryKey: ['templates'], queryFn: templatesApi.list });
+
+  // Al elegir una plantilla, su texto se copia al mensaje (queda editable:
+  // la campaña guarda su propio body, no una referencia a la plantilla).
+  const applyTemplate = (code) => {
+    const tpl = templates.find((t) => t.code === code);
+    if (!tpl) return;
+    if (body.trim() && !window.confirm('Se reemplazará el mensaje actual por el de la plantilla. ¿Continuar?')) return;
+    setBody(tpl.body);
+  };
+
   // Cuenta de destinatarios según los tags seleccionados (clientes).
   const { data: audience } = useQuery({
     queryKey: ['audience-count', tags],
@@ -82,6 +112,9 @@ function CampaignModal({ campaign, onClose, onCreated }) {
     },
     onSuccess: ({ res } = {}) => {
       qc.invalidateQueries({ queryKey: ['campaigns'] });
+      // Las tarjetas superiores salen de /reminders/stats: sin esto siguen
+      // mostrando los conteos previos al cambio.
+      qc.invalidateQueries({ queryKey: ['reminder-stats'] });
       if (editing) {
         window.toast?.('Campaña actualizada', { label: 'Campañas', kind: 'good' });
       } else if (modo === 'schedule') {
@@ -147,9 +180,27 @@ function CampaignModal({ campaign, onClose, onCreated }) {
           </div>
 
           <div className="field">
+            <label>Partir de una plantilla (opcional)</label>
+            <select className="input" value="" onChange={(e) => { applyTemplate(e.target.value); e.target.value = ''; }}>
+              <option value="">— escribir mensaje desde cero —</option>
+              {templates.map((t) => (
+                <option key={t.id} value={t.code}>{t.name} · {t.code}</option>
+              ))}
+            </select>
+            {templates.length === 0 && (
+              <div className="mono" style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>
+                Aún no tienes plantillas. Créalas en la vista Plantillas.
+              </div>
+            )}
+          </div>
+
+          <div className="field">
             <label>Mensaje (usa <span className="mono">{'{nombre}'}</span> para personalizar)</label>
             <textarea className="input" value={body} onChange={(e) => setBody(e.target.value)} style={{ minHeight: 96 }}
               placeholder="🌿 Hola {nombre}, tenemos una oferta especial para ti..." />
+            <div className="mono" style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>
+              El texto se copia de la plantilla y queda editable: cambiarlo aquí no afecta la plantilla original.
+            </div>
           </div>
 
           <div className="field">
@@ -330,6 +381,7 @@ function TagsMasterModal({ onClose }) {
 
 // ---------- Modal: enviar un recordatorio a un número y/o a clientes ----------
 function TestReminderModal({ rule, onClose }) {
+  const qc = useQueryClient();
   const [phone, setPhone] = React.useState('');
   const [name, setName] = React.useState('María');
   const [search, setSearch] = React.useState('');
@@ -343,11 +395,17 @@ function TestReminderModal({ rule, onClose }) {
     mutationFn: () => remindersApi.test({
       phone: phone.trim() || undefined,
       customerIds: [...selected],
+      ruleId: rule?.id,
       template: rule?.template,
       when: rule?.when,
       name: name.trim() || undefined,
     }),
     onSuccess: (res) => {
+      // Refresca las tarjetas y el historial: el envío ya quedó registrado
+      // en la BD, pero la vista sigue mostrando los datos anteriores.
+      qc.invalidateQueries({ queryKey: ['reminder-stats'] });
+      qc.invalidateQueries({ queryKey: ['reminders'] });
+      qc.invalidateQueries({ queryKey: ['conversations'] });
       const extra = res?.failed ? ` · ${res.failed} falló(aron)` : '';
       window.toast?.(`Enviado a ${res?.sent ?? 0} destinatario(s)${extra}`, { label: 'WhatsApp', kind: res?.failed ? 'accent' : 'wa' });
       onClose();
@@ -476,6 +534,9 @@ export function Recordatorios() {
     mutationFn: (id) => campaignsApi.send(id),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['campaigns'] });
+      // Las tarjetas superiores salen de /reminders/stats: sin esto siguen
+      // mostrando los conteos previos al cambio.
+      qc.invalidateQueries({ queryKey: ['reminder-stats'] });
       const stats = res?.stats || {};
       const extra = stats.failed ? ` · ${stats.failed} falló(aron)` : '';
       window.toast?.(`Enviada a ${stats.sent ?? 0} cliente(s)${extra}`, { label: 'Campañas', kind: stats.failed ? 'accent' : 'good' });
@@ -489,6 +550,9 @@ export function Recordatorios() {
     mutationFn: (id) => campaignsApi.remove(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['campaigns'] });
+      // Las tarjetas superiores salen de /reminders/stats: sin esto siguen
+      // mostrando los conteos previos al cambio.
+      qc.invalidateQueries({ queryKey: ['reminder-stats'] });
       window.toast?.('Campaña eliminada', { label: 'Campañas', kind: 'accent' });
     },
   });
@@ -521,6 +585,70 @@ export function Recordatorios() {
 
   // Regla seleccionada para la vista previa (cae a la primera si la elegida no existe).
   const r = rules.find((x) => x.id === picked) || rules[0] || { when: '-24h', label: '—', template: '' };
+
+  // ---- Plantillas: edición en vivo del texto que se envía ----
+  const { data: templates = [] } = useQuery({ queryKey: ['templates'], queryFn: templatesApi.list });
+  const activeTemplate = templates.find((t) => t.code === r.template) || null;
+
+  // Borrador local: null = sin cambios (se muestra el texto guardado).
+  const [tplDraft, setTplDraft] = React.useState(null);
+  // Al cambiar de regla o de plantilla, se descarta el borrador anterior.
+  React.useEffect(() => { setTplDraft(null); }, [r.id, r.template]);
+
+  const tplBody = tplDraft ?? activeTemplate?.body ?? '';
+  const tplDirty = tplDraft !== null && tplDraft !== (activeTemplate?.body ?? '');
+
+  // La regla apunta a una plantilla que aún no existe en la BD (p.ej. antes
+  // del primer envío). Permitimos crearla desde aquí en vez de dejar el
+  // editor bloqueado sin explicación.
+  const missingTemplate = !!r.template && !activeTemplate && templates.length > 0;
+
+  const createTemplate = useMutation({
+    mutationFn: () => templatesApi.create({
+      code: r.template,
+      name: r.label || r.template,
+      body: '',
+      language: 'es',
+      status: 'APPROVED',
+      variables: ['nombre', 'paquete'],
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['templates'] });
+      window.toast?.('Plantilla creada · ya puedes escribir su mensaje', { label: 'Recordatorios', kind: 'good' });
+    },
+    onError: (err) => window.toast?.(err.message || 'No se pudo crear.', { label: 'Error', kind: 'accent' }),
+  });
+
+  const saveTemplate = useMutation({
+    mutationFn: ({ id, body }) => templatesApi.update(id, { body }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['templates'] });
+      setTplDraft(null);
+      window.toast?.('Plantilla guardada', { label: 'Recordatorios', kind: 'good' });
+    },
+    onError: (err) => window.toast?.(err.message || 'No se pudo guardar.', { label: 'Error', kind: 'accent' }),
+  });
+
+  // Cambia qué plantilla usa una regla y lo persiste en settings.
+  const setRuleTemplate = (id, code) => {
+    const next = rules.map((x) => x.id === id ? { ...x, template: code } : x);
+    setRules(next);
+    savePretrip.mutate({ rules: next });
+  };
+
+  // Conteo real de envíos por regla, para la columna "Enviados".
+  const { data: reminders = [] } = useQuery({ queryKey: ['reminders'], queryFn: remindersApi.list });
+  const sentByRule = React.useMemo(() => {
+    const acc = {};
+    for (const rem of reminders) {
+      const key = rem?.metadata?.ruleId || rem?.metadata?.when;
+      if (!key) continue;
+      if (!acc[key]) acc[key] = { sent: 0, failed: 0 };
+      if (rem.status === 'SENT') acc[key].sent++;
+      else if (rem.status === 'FAILED') acc[key].failed++;
+    }
+    return acc;
+  }, [reminders]);
 
   const fmt = (iso) => iso ? new Date(iso).toLocaleString('es-PE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
 
@@ -559,7 +687,14 @@ export function Recordatorios() {
         <div className="stat">
           <div className="label">Campañas programadas</div>
           <div className="value">{stats?.campanasProgramadas ?? campaigns.filter((c) => c.status === 'SCHEDULED').length}</div>
-          <div className="delta"><span className="mono">{campaigns.length} en total</span></div>
+          <div className="delta">
+            <span className="mono">
+              {stats?.campanasTotal ?? campaigns.length} en total
+              {(stats?.campanasBorrador ?? campaigns.filter((c) => c.status === 'DRAFT').length) > 0
+                ? ` · ${stats?.campanasBorrador ?? campaigns.filter((c) => c.status === 'DRAFT').length} borrador`
+                : ''}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -599,20 +734,23 @@ export function Recordatorios() {
             </div>
             <div className="card-b flush" style={{ borderTop: '1px solid var(--hair)' }}>
               <table className="t">
-                <thead><tr><th>Disparo</th><th>Plantilla</th><th style={{ textAlign: 'right' }}>Enviados</th><th style={{ textAlign: 'right' }}>Leídos</th><th>Estado</th><th></th></tr></thead>
+                <thead><tr><th>Disparo</th><th>Plantilla</th><th style={{ textAlign: 'right' }}>Enviados</th><th style={{ textAlign: 'right' }}>Fallidos</th><th>Estado</th><th></th></tr></thead>
                 <tbody>
-                  {rules.map(x => (
+                  {rules.map(x => {
+                    const c = sentByRule[x.id] || sentByRule[x.when] || { sent: 0, failed: 0 };
+                    return (
                     <tr key={x.id} className={picked === x.id ? 'selected' : ''} onClick={() => setPicked(x.id)} style={{ cursor: 'pointer' }}>
                       <td><div style={{ fontSize: 12, fontWeight: 500 }}>{x.label}</div><div className="cell-id">{x.when}</div></td>
                       <td className="cell-id">{x.template}</td>
-                      <td className="cell-num" style={{ textAlign: 'right', color: 'var(--muted)' }}>—</td>
-                      <td className="cell-num" style={{ textAlign: 'right', color: 'var(--muted)' }}>—</td>
+                      <td className="cell-num" style={{ textAlign: 'right', color: c.sent ? 'var(--ink)' : 'var(--muted)' }}>{c.sent || '—'}</td>
+                      <td className="cell-num" style={{ textAlign: 'right', color: c.failed ? 'var(--bad)' : 'var(--muted)' }}>{c.failed || '—'}</td>
                       <td onClick={(e) => { e.stopPropagation(); toggleRule(x.id); }} style={{ cursor: 'pointer' }} title={x.active ? 'Desactivar' : 'Activar'}>
                         <span className={'switch ' + (x.active ? 'on' : '')} />
                       </td>
                       <td><span className="cell-id">{x.active ? 'activo' : 'inactivo'}</span></td>
                     </tr>
-                  ))}
+                    );
+                  })}
                   {rules.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--muted)', padding: 18 }}>Cargando recordatorios…</td></tr>}
                 </tbody>
               </table>
@@ -620,27 +758,78 @@ export function Recordatorios() {
           </div>
 
           <div className="card" style={{ position: 'sticky', top: 0 }}>
-            <div className="card-h"><h2 className="h2">Vista previa · {r.label}</h2></div>
+            <div className="card-h">
+              <h2 className="h2">Vista previa · {r.label}</h2>
+              {tplDirty && <span className="pill warn" style={{ marginLeft: 'auto' }}>sin guardar</span>}
+            </div>
             <div className="card-b">
               <div style={{ background: '#E5DDD5', padding: 14, borderRadius: 6 }}>
-                <PreTripPreview when={r.when} />
+                <PreTripPreview body={tplBody} />
               </div>
               <div className="spacer-m" />
-              <div className="field"><label>Plantilla</label>
-                <select className="input" defaultValue={r.template}>
-                  <option>{r.template}</option>
+
+              <div className="field">
+                <label>Plantilla</label>
+                <select className="input" value={r.template || ''} onChange={(e) => setRuleTemplate(r.id, e.target.value)}>
+                  {!r.template && <option value="">— sin plantilla —</option>}
+                  {templates.map((t) => (
+                    <option key={t.id} value={t.code}>{t.name} · {t.code}</option>
+                  ))}
                 </select>
               </div>
+
               <div className="spacer-s" />
-              <div className="field"><label>Adjuntar</label>
-                <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
-                  <button className="btn ghost sm">PDF itinerario</button>
-                  <button className="btn ghost sm">Mapa Google</button>
-                  <button className="btn ghost sm">Recomendaciones</button>
+              <div className="field">
+                <label>
+                  Mensaje · usa <span className="mono">{'{nombre}'}</span> y <span className="mono">{'{paquete}'}</span>
+                </label>
+                <textarea
+                  className="input"
+                  style={{ minHeight: 150, fontSize: 12, lineHeight: 1.5 }}
+                  value={tplBody}
+                  disabled={!activeTemplate}
+                  placeholder={activeTemplate ? '' : 'Elige una plantilla para editar su texto.'}
+                  onChange={(e) => setTplDraft(e.target.value)}
+                />
+                <div className="mono" style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>
+                  Se usa tanto en el envío automático como en el manual. También la
+                  puedes editar desde la vista <b>Plantillas</b>.
                 </div>
               </div>
+
+              {missingTemplate && (
+                <>
+                  <div className="spacer-s" />
+                  <div style={{ fontSize: 11, color: 'var(--muted)', border: '1px solid var(--hair)', borderRadius: 6, padding: '8px 10px' }}>
+                    La plantilla <span className="mono">{r.template}</span> todavía no existe.
+                    <div className="spacer-s" />
+                    <button className="btn ghost sm" data-handled="1" disabled={createTemplate.isPending}
+                      onClick={() => createTemplate.mutate()}>
+                      {createTemplate.isPending ? 'Creando…' : 'Crearla ahora'}
+                    </button>
+                  </div>
+                </>
+              )}
+
               <div className="spacer-s" />
-              <button className="btn" style={{ width: '100%' }} data-handled="1" onClick={() => setTestRule(r)}><Ico.send />Probar envío a mi número</button>
+              <div className="row" style={{ gap: 6 }}>
+                <button
+                  className="btn" style={{ flex: 1 }} data-handled="1"
+                  disabled={!tplDirty || saveTemplate.isPending}
+                  onClick={() => saveTemplate.mutate({ id: activeTemplate.id, body: tplBody })}>
+                  {saveTemplate.isPending ? 'Guardando…' : 'Guardar plantilla'}
+                </button>
+                {tplDirty && (
+                  <button className="btn ghost" data-handled="1" onClick={() => setTplDraft(null)}>
+                    Descartar
+                  </button>
+                )}
+              </div>
+
+              <div className="spacer-s" />
+              <button className="btn ghost" style={{ width: '100%' }} data-handled="1" onClick={() => setTestRule(r)}>
+                <Ico.send />Enviar ahora a clientes o a un número
+              </button>
             </div>
           </div>
         </div>

@@ -224,6 +224,14 @@ import Footer from '../components/Footer.astro';
 		const comentarios = String(data.get('comentarios') || '');
 		const total = (document.querySelector('[data-co-total]') as HTMLElement)?.textContent || '';
 		const lista = items.map((it: CartItem) => `• ${it.nombre} (x${Number(it.cantidad) || 1})`).join('\n');
+		// Items estructurados: permiten al backend registrar la reserva en el
+		// módulo de ventas (el texto de arriba es solo para el correo).
+		const itemsPayload = items.map((it: CartItem) => ({
+			slug: it.slug || '',
+			nombre: it.nombre || '',
+			cantidad: Number(it.cantidad) || 1,
+			precio: it.precio || '',
+		}));
 
 		btnConfirmar.disabled = true;
 		const txtOriginal = btnConfirmar.textContent;
@@ -239,6 +247,7 @@ import Footer from '../components/Footer.astro';
 					document: documento,
 					comments: comentarios,
 					orderSummary: lista,
+					items: itemsPayload,
 					total,
 					voucherBase64: voucherBase64 || undefined, // adjunta el comprobante si lo subió
 				}),

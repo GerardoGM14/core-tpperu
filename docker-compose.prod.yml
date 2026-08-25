@@ -79,6 +79,11 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file: ./.env.prod
+    # Persiste la media descargada de WhatsApp (imágenes, PDFs recibidos).
+    # Sin esto, cada deploy recrea el contenedor y las burbujas del historial
+    # quedan apuntando a archivos que ya no existen.
+    volumes:
+      - tpp_wa_media:/app/media
     environment:
       # El wa-daemon comparte .env.prod con la API (PORT=4000 es de la API).
       # Aquí forzamos su propio puerto para que coincida con el healthcheck.
@@ -126,6 +131,7 @@ volumes:
   tpp_postgres_data:
   tpp_redis_data:
   tpp_api_uploads:
+  tpp_wa_media:
 
 networks:
   internal:

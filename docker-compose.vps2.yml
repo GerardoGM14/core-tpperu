@@ -55,6 +55,9 @@ services:
     # Expuesto SOLO en localhost del host → el nginx del sistema le habla.
     ports:
       - "127.0.0.1:4000:4000"
+    # Persiste los archivos subidos (documentos del viaje) entre deploys.
+    volumes:
+      - tpp_api_uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -79,6 +82,11 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file: ./.env.prod
+    # Persiste la media descargada de WhatsApp (imágenes, PDFs recibidos).
+    # Sin esto, cada deploy recrea el contenedor y las burbujas del historial
+    # quedan apuntando a archivos que ya no existen.
+    volumes:
+      - tpp_wa_media:/app/media
     environment:
       PORT: "8080"
       # El driver pq (Go) NO entiende ?schema=public (eso es de Prisma).
@@ -105,6 +113,8 @@ services:
 volumes:
   tpp_postgres_data:
   tpp_redis_data:
+  tpp_api_uploads:
+  tpp_wa_media:
 
 networks:
   internal:

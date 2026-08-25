@@ -146,6 +146,18 @@ async function main() {
     { code: 'WSP_BIENVENIDA_v2', name: 'Bienvenida suscriptor', body: '¡Hola {nombre}! Soy *Mara*, asistente de TPP Perú 🌿 Gracias por suscribirte. ¿Buscas tu próxima aventura?', variables: ['nombre'], status: 'APPROVED' },
     { code: 'WSP_CONFIRMACION_v1', name: 'Confirmación de reserva', body: 'Hola {nombre}, tu reserva *{codigo}* fue confirmada ✅\n📍 {paquete}\n👥 {pax} personas\n📅 {fecha}\n💰 S/ {total}', variables: ['nombre', 'codigo', 'paquete', 'pax', 'fecha', 'total'], status: 'APPROVED' },
     { code: 'WSP_POST_TOUR_v1', name: 'Encuesta post-tour', body: 'Hola {nombre}, ¿qué tal estuvo tu experiencia en *{paquete}*? Califícanos del 1 al 5 ⭐', variables: ['nombre', 'paquete'], status: 'PENDING_REVIEW' },
+    // Plantillas de los recordatorios pre-trip. Las reglas de settings las
+    // referencian por código; si no existen, el motor cae a un texto fijo y
+    // el panel no puede editarlas.
+    { code: 'WSP_RECORDATORIO_48H', name: 'Recordatorio · 48 horas antes', body: '🌿 Hola {nombre}, faltan *48 horas* para tu tour *{paquete}*. Tu reserva está confirmada ✅
+
+Te escribimos pronto con el horario exacto y punto de encuentro.', variables: ['nombre', 'paquete'], status: 'APPROVED' },
+    { code: 'WSP_RECORDATORIO_24H', name: 'Recordatorio · 24 horas antes', body: '⏰ Hola {nombre}, *24 horas* para el inicio de tu tour *{paquete}*.
+
+Te esperamos. Cualquier duda, escríbenos por aquí.', variables: ['nombre', 'paquete'], status: 'APPROVED' },
+    { code: 'WSP_RECORDATORIO_12H', name: 'Recordatorio · 12 horas antes', body: '🎒 Hola {nombre}, *mañana viajas con TPP* ({paquete}).
+
+Recomendaciones: documento de identidad, bloqueador, repelente y ropa cómoda. ¡Nos vemos!', variables: ['nombre', 'paquete'], status: 'APPROVED' },
   ] as const;
 
   for (const t of templatesData) {

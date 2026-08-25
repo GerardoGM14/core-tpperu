@@ -36,4 +36,11 @@ const Ico = {
   image:   (p={}) => <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="2" y="3" width="12" height="10" rx="1"/><circle cx="5.5" cy="6.5" r="1"/><path d="M3 11l3-3 2.5 2.5L11 7l2 2"/></svg>,
 };
 
+
+// Documento con esquina doblada (adjuntos del chat).
+Ico.file = (p={}) => <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M9 1.5H4.5A1.5 1.5 0 003 3v10a1.5 1.5 0 001.5 1.5h7A1.5 1.5 0 0013 13V5.5z"/><path d="M9 1.5V5.5H13"/></svg>;
+
+// Flecha de descarga.
+Ico.download = (p={}) => <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M8 2v8"/><path d="M5 7.5L8 10.5l3-3"/><path d="M2.5 12.5v1h11v-1"/></svg>;
+
 export default Ico;
